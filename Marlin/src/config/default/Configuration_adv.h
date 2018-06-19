@@ -331,6 +331,17 @@
   #endif
 #endif
 
+//#define Z_TRIPLE_STEPPER_DRIVERS
+#if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+  //#define Z_TRIPLE_ENDSTOPS
+  #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    #define Z2_USE_ENDSTOP _XMAX_
+    #define Z3_USE_ENDSTOP _YMAX_
+    #define Z_TRIPLE_ENDSTOPS_ADJUSTMENT2  0
+    #define Z_TRIPLE_ENDSTOPS_ADJUSTMENT3  0
+  #endif
+#endif
+
 // Enable this for dual x-carriage printers.
 // A dual x-carriage design has the advantage that the inactive extruder can be parked which
 // prevents hot-end ooze contaminating the print. It also reduces the weight of each x-carriage
@@ -1032,6 +1043,7 @@
   //#define Y2_IS_TMC26X
   //#define Z_IS_TMC26X
   //#define Z2_IS_TMC26X
+  //#define Z3_IS_TMC26X
   //#define E0_IS_TMC26X
   //#define E1_IS_TMC26X
   //#define E2_IS_TMC26X
@@ -1061,6 +1073,10 @@
   #define Z2_MAX_CURRENT    1000
   #define Z2_SENSE_RESISTOR   91
   #define Z2_MICROSTEPS       16
+
+  #define Z3_MAX_CURRENT    1000
+  #define Z3_SENSE_RESISTOR   91
+  #define Z3_MICROSTEPS       16
 
   #define E0_MAX_CURRENT    1000
   #define E0_SENSE_RESISTOR   91
@@ -1105,6 +1121,7 @@
   //#define Y2_IS_TMC2130
   //#define Z_IS_TMC2130
   //#define Z2_IS_TMC2130
+  //#define Z3_IS_TMC2130
   //#define E0_IS_TMC2130
   //#define E1_IS_TMC2130
   //#define E2_IS_TMC2130
@@ -1130,6 +1147,7 @@
   //#define Y2_IS_TMC2208
   //#define Z_IS_TMC2208
   //#define Z2_IS_TMC2208
+  //#define Z3_IS_TMC2208
   //#define E0_IS_TMC2208
   //#define E1_IS_TMC2208
   //#define E2_IS_TMC2208
@@ -1160,6 +1178,9 @@
 
   #define Z2_CURRENT         800
   #define Z2_MICROSTEPS       16
+
+  #define Z3_CURRENT         800
+  #define Z3_MICROSTEPS       16
 
   #define E0_CURRENT         800
   #define E0_MICROSTEPS       16
@@ -1225,6 +1246,7 @@
   #define Y2_HYBRID_THRESHOLD    100
   #define Z_HYBRID_THRESHOLD       3
   #define Z2_HYBRID_THRESHOLD      3
+  #define Z3_HYBRID_THRESHOLD      3
   #define E0_HYBRID_THRESHOLD     30
   #define E1_HYBRID_THRESHOLD     30
   #define E2_HYBRID_THRESHOLD     30

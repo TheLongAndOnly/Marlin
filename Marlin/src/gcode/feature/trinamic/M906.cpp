@@ -64,6 +64,9 @@ void GcodeSuite::M906() {
         #if Z2_IS_TRINAMIC
           if (index == 1) TMC_SET_CURRENT(Z2);
         #endif
+        #if Z3_IS_TRINAMIC
+          if (index == 1) TMC_SET_CURRENT(Z3);
+        #endif
         break;
       case E_AXIS: {
         if (get_target_extruder_from_command()) return;
@@ -111,6 +114,9 @@ void GcodeSuite::M906() {
       #endif
       #if Z2_IS_TRINAMIC
         TMC_SAY_CURRENT(Z2);
+      #endif
+      #if Z3_IS_TRINAMIC
+        TMC_SAY_CURRENT(Z3);
       #endif
       break;
     case E_AXIS:

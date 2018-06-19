@@ -1297,6 +1297,16 @@ void homeaxis(const AxisEnum axis) {
     }
   #endif
 
+  #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    switch (axis) {
+      #if ENABLED(Z_TRIPLE_ENDSTOPS)
+        case Z_AXIS:
+      #endif
+      stepper.set_homing_triple_axis(true);
+      default: break;
+    }
+  #endif
+
   // Fast move towards endstop until triggered
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("Home 1 Fast:");
@@ -1330,7 +1340,7 @@ void homeaxis(const AxisEnum axis) {
     do_homing_move(axis, 2 * bump, get_homing_bump_feedrate(axis));
   }
 
-  #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+  #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
     const bool pos_dir = axis_home_dir > 0;
     #if ENABLED(X_DUAL_ENDSTOPS)
       if (axis == X_AXIS) {
@@ -1339,6 +1349,7 @@ void homeaxis(const AxisEnum axis) {
         do_homing_move(axis, pos_dir ? -adj : adj);
         stepper.set_x_lock(false);
         stepper.set_x2_lock(false);
+        stepper.set_homing_dual_axis(false);
       }
     #endif
     #if ENABLED(Y_DUAL_ENDSTOPS)
@@ -1348,6 +1359,7 @@ void homeaxis(const AxisEnum axis) {
         do_homing_move(axis, pos_dir ? -adj : adj);
         stepper.set_y_lock(false);
         stepper.set_y2_lock(false);
+        stepper.set_homing_dual_axis(false);
       }
     #endif
     #if ENABLED(Z_DUAL_ENDSTOPS)
@@ -1357,9 +1369,57 @@ void homeaxis(const AxisEnum axis) {
         do_homing_move(axis, pos_dir ? -adj : adj);
         stepper.set_z_lock(false);
         stepper.set_z2_lock(false);
+        stepper.set_homing_dual_axis(false);
       }
     #endif
-    stepper.set_homing_dual_axis(false);
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      if (axis == Z_AXIS) {
+        // we push the function pointers for the stepper lock function into an array
+        void (*lock[3]) (bool)= {&stepper.set_z_lock, &stepper.set_z2_lock, &stepper.set_z3_lock};
+        float adj[3] = {0, endstops.z_endstop_adj, endstops.z_endstop_adj2};
+
+        void (*tempLock) (bool);
+        float tempAdj;
+
+        // manual bubble sort by adjust value
+        if(adj[1] < adj[0]) {
+          tempLock = lock[0], tempAdj = adj[0];
+          lock[0] = lock[1], adj[0] = adj[1];
+          lock[1] = tempLock, adj[1] = tempAdj;
+        }
+        if(adj[2] < adj[1]) {
+          tempLock = lock[1], tempAdj = adj[1];
+          lock[1] = lock[2], adj[1] = adj[2];
+          lock[2] = tempLock, adj[2] = tempAdj;
+        }
+        if(adj[1] < adj[0]) {
+          tempLock = lock[0], tempAdj = adj[0];
+          lock[0] = lock[1], adj[0] = adj[1];
+          lock[1] = tempLock, adj[1] = tempAdj;
+        }
+
+        if(pos_dir) {
+          // normalize adj to smallest value and do the first move
+          (*lock[0])(true);
+          do_homing_move(axis, adj[1] - adj[0]);
+          // lock the second stepper for the final correction
+          (*lock[1])(true);
+          do_homing_move(axis, adj[2] - adj[1]);
+        }
+        else {
+          (*lock[2])(true);
+          do_homing_move(axis, adj[1] - adj[2]);
+          (*lock[1])(true);
+          do_homing_move(axis, adj[0] - adj[1]);
+        }
+
+        stepper.set_z_lock(false);
+        stepper.set_z2_lock(false);
+        stepper.set_z3_lock(false);
+        stepper.set_homing_triple_axis(false);
+      }
+    #endif
+
   #endif
 
   #if IS_SCARA

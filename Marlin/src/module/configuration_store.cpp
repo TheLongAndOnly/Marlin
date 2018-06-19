@@ -185,10 +185,13 @@ typedef struct SettingsDataStruct {
           delta_segments_per_second,                    // M665 S
           delta_calibration_radius,                     // M665 B
           delta_tower_angle_trim[ABC];                  // M665 XYZ
-  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
     float x_endstop_adj,                                // M666 X
           y_endstop_adj,                                // M666 Y
           z_endstop_adj;                                // M666 Z
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      float z_endstop_adj2;                             // M666 Z
+    #endif
   #endif
 
   //
@@ -238,8 +241,8 @@ typedef struct SettingsDataStruct {
   // HAS_TRINAMIC
   //
   #define TMC_AXES (MAX_EXTRUDERS + 6)
-  uint16_t tmc_stepper_current[TMC_AXES];               // M906 X Y Z X2 Y2 Z2 E0 E1 E2 E3 E4
-  uint32_t tmc_hybrid_threshold[TMC_AXES];              // M913 X Y Z X2 Y2 Z2 E0 E1 E2 E3 E4
+  uint16_t tmc_stepper_current[TMC_AXES];               // M906 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4
+  uint32_t tmc_hybrid_threshold[TMC_AXES];              // M913 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4
   int16_t tmc_sgt[XYZ];                                 // M914 X Y Z
 
   //
@@ -545,7 +548,7 @@ void MarlinSettings::postprocess() {
       EEPROM_WRITE(delta_calibration_radius);  // 1 float
       EEPROM_WRITE(delta_tower_angle_trim);    // 3 floats
 
-    #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+    #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
 
       _FIELD_TEST(x_endstop_adj);
 
@@ -563,8 +566,14 @@ void MarlinSettings::postprocess() {
         EEPROM_WRITE(dummy);
       #endif
 
-      #if ENABLED(Z_DUAL_ENDSTOPS)
+      #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
         EEPROM_WRITE(endstops.z_endstop_adj);   // 1 float
+      #else
+        EEPROM_WRITE(dummy);
+      #endif
+
+      #if ENABLED(Z_TRIPLE_ENDSTOPS)
+        EEPROM_WRITE(endstops.z_endstop_adj2);   // 1 float
       #else
         EEPROM_WRITE(dummy);
       #endif
@@ -711,6 +720,11 @@ void MarlinSettings::postprocess() {
         #else
           0,
         #endif
+        #if Z3_IS_TRINAMIC
+          stepperZ3.getCurrent(),
+        #else
+          0,
+        #endif
         #if E0_IS_TRINAMIC
           stepperE0.getCurrent(),
         #else
@@ -779,6 +793,11 @@ void MarlinSettings::postprocess() {
           TMC_GET_PWMTHRS(Z, Z2),
         #else
           Z2_HYBRID_THRESHOLD,
+        #endif
+        #if Z3_IS_TRINAMIC
+          TMC_GET_PWMTHRS(Z, Z3),
+        #else
+          Z3_HYBRID_THRESHOLD,
         #endif
         #if E0_IS_TRINAMIC
           TMC_GET_PWMTHRS(E, E0),
@@ -1151,7 +1170,7 @@ void MarlinSettings::postprocess() {
         EEPROM_READ(delta_calibration_radius);  // 1 float
         EEPROM_READ(delta_tower_angle_trim);    // 3 floats
 
-      #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+      #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
 
         _FIELD_TEST(x_endstop_adj);
 
@@ -1165,8 +1184,13 @@ void MarlinSettings::postprocess() {
         #else
           EEPROM_READ(dummy);
         #endif
-        #if ENABLED(Z_DUAL_ENDSTOPS)
+        #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
           EEPROM_READ(endstops.z_endstop_adj); // 1 float
+        #else
+          EEPROM_READ(dummy);
+        #endif
+        #if ENABLED(Z_TRIPLE_ENDSTOPS)
+          EEPROM_READ(endstops.z_endstop_adj2); // 1 float
         #else
           EEPROM_READ(dummy);
         #endif
@@ -1329,6 +1353,9 @@ void MarlinSettings::postprocess() {
           #if Z2_IS_TRINAMIC
             SET_CURR(Z2);
           #endif
+          #if Z3_IS_TRINAMIC
+            SET_CURR(Z3);
+          #endif
           #if E0_IS_TRINAMIC
             SET_CURR(E0);
           #endif
@@ -1373,6 +1400,9 @@ void MarlinSettings::postprocess() {
           #if Z2_IS_TRINAMIC
             TMC_SET_PWMTHRS(Z, Z2);
           #endif
+          #if Z3_IS_TRINAMIC
+            TMC_SET_PWMTHRS(Z, Z3);
+          #endif
           #if E0_IS_TRINAMIC
             TMC_SET_PWMTHRS(E, E0);
           #endif
@@ -1398,7 +1428,7 @@ void MarlinSettings::postprocess() {
        * TMC2130 Sensorless homing threshold.
        * X and X2 use the same value
        * Y and Y2 use the same value
-       * Z and Z2 use the same value
+       * Z, Z2 and Z3 use the same value
        */
       int16_t tmc_sgt[XYZ];
       EEPROM_READ(tmc_sgt);
@@ -1426,6 +1456,9 @@ void MarlinSettings::postprocess() {
             #endif
             #if ENABLED(Z2_IS_TMC2130)
               stepperZ2.sgt(tmc_sgt[2]);
+            #endif
+            #if ENABLED(Z3_IS_TMC2130)
+              stepperZ3.sgt(tmc_sgt[2]);
             #endif
           #endif
         }
@@ -1789,7 +1822,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
     delta_calibration_radius = DELTA_CALIBRATION_RADIUS;
     COPY(delta_tower_angle_trim, dta);
 
-  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
 
     #if ENABLED(X_DUAL_ENDSTOPS)
       endstops.x_endstop_adj = (
@@ -1813,6 +1846,22 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       endstops.z_endstop_adj = (
         #ifdef Z_DUAL_ENDSTOPS_ADJUSTMENT
           Z_DUAL_ENDSTOPS_ADJUSTMENT
+        #else
+          0
+        #endif
+      );
+    #endif
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      endstops.z_endstop_adj = (
+        #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
+          Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
+        #else
+          0
+        #endif
+      );
+      endstops.z_endstop_adj2 = (
+        #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
+          Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
         #else
           0
         #endif
@@ -2483,6 +2532,12 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       #if X2_IS_TRINAMIC || Y2_IS_TRINAMIC || Z2_IS_TRINAMIC
         SERIAL_EOL_P(port);
       #endif
+      #if Z3_IS_TRINAMIC
+        say_M906(PORTVAR_SOLO);
+        SERIAL_ECHOPGM_P(port, " I2");
+        SERIAL_ECHOPAIR_P(port, " Z", stepperZ3.getCurrent());
+        SERIAL_EOL_P(port);
+      #endif
       #if E0_IS_TRINAMIC
         say_M906(PORTVAR_SOLO);
         SERIAL_ECHOLNPAIR_P(port, " T0 E", stepperE0.getCurrent());
@@ -2543,6 +2598,12 @@ void MarlinSettings::reset(PORTARG_SOLO) {
           SERIAL_ECHOPAIR_P(port, " Z", TMC_GET_PWMTHRS(Z, Z2));
         #endif
         #if X2_IS_TRINAMIC || Y2_IS_TRINAMIC || Z2_IS_TRINAMIC
+          SERIAL_EOL_P(port);
+        #endif
+        #if Z3_IS_TRINAMIC
+          say_M913(PORTVAR_SOLO);
+          SERIAL_ECHOPGM_P(port, " I2");
+          SERIAL_ECHOPAIR_P(port, " Z", TMC_GET_PWMTHRS(Z, Z3));
           SERIAL_EOL_P(port);
         #endif
         #if E0_IS_TRINAMIC
@@ -2609,6 +2670,14 @@ void MarlinSettings::reset(PORTARG_SOLO) {
           #if HAS_Z2_SENSORLESS
             SERIAL_ECHOPAIR_P(port, " Z", stepperZ2.sgt());
           #endif
+          SERIAL_EOL_P(port);
+        #endif
+
+        #define HAS_Z3_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && ENABLED(Z3_IS_TMC2130))
+        #if HAS_Z3_SENSORLESS
+          say_M914(PORTVAR_SOLO);
+          SERIAL_ECHOPGM_P(port, " I2");
+          SERIAL_ECHOPAIR_P(port, " Z", stepperZ3.sgt());
           SERIAL_EOL_P(port);
         #endif
 

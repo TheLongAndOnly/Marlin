@@ -216,6 +216,10 @@ class Stepper {
       static bool homing_dual_axis;
     #endif
 
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      static bool homing_triple_axis;
+    #endif
+
     #if HAS_MOTOR_CURRENT_PWM
       #ifndef PWM_MOTOR_CURRENT
         #define PWM_MOTOR_CURRENT DEFAULT_PWM_MOTOR_CURRENT
@@ -242,6 +246,9 @@ class Stepper {
     #endif
     #if ENABLED(Z_DUAL_ENDSTOPS)
       static bool locked_Z_motor, locked_Z2_motor;
+    #endif
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      static bool locked_Z_motor, locked_Z2_motor, locked_Z3_motor;
     #endif
 
     static uint32_t acceleration_time, deceleration_time; // time measured in Stepper Timer ticks
@@ -386,6 +393,9 @@ class Stepper {
     #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
       FORCE_INLINE static void set_homing_dual_axis(const bool state) { homing_dual_axis = state; }
     #endif
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      FORCE_INLINE static void set_homing_triple_axis(const bool state) { homing_triple_axis = state; }
+    #endif
     #if ENABLED(X_DUAL_ENDSTOPS)
       FORCE_INLINE static void set_x_lock(const bool state) { locked_X_motor = state; }
       FORCE_INLINE static void set_x2_lock(const bool state) { locked_X2_motor = state; }
@@ -394,9 +404,12 @@ class Stepper {
       FORCE_INLINE static void set_y_lock(const bool state) { locked_Y_motor = state; }
       FORCE_INLINE static void set_y2_lock(const bool state) { locked_Y2_motor = state; }
     #endif
-    #if ENABLED(Z_DUAL_ENDSTOPS)
+    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
       FORCE_INLINE static void set_z_lock(const bool state) { locked_Z_motor = state; }
       FORCE_INLINE static void set_z2_lock(const bool state) { locked_Z2_motor = state; }
+    #endif
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      FORCE_INLINE static void set_z3_lock(const bool state) { locked_Z3_motor = state; }
     #endif
 
     #if ENABLED(BABYSTEPPING)
