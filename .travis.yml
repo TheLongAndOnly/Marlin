@@ -467,7 +467,6 @@ script:
   - opt_add_adv Z3_MAX_PIN 3
   - opt_enable USE_XMAX_PLUG
   - opt_enable USE_YMAX_PLUG
-  - update_defaults
   - build_marlin_pio ${TRAVIS_BUILD_DIR} ${TEST_PLATFORM}
 
   #############################
