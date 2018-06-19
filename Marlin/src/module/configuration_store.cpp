@@ -240,7 +240,7 @@ typedef struct SettingsDataStruct {
   //
   // HAS_TRINAMIC
   //
-  #define TMC_AXES (MAX_EXTRUDERS + 6)
+  #define TMC_AXES (MAX_EXTRUDERS + 7)
   uint16_t tmc_stepper_current[TMC_AXES];               // M906 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4
   uint32_t tmc_hybrid_threshold[TMC_AXES];              // M913 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4
   int16_t tmc_sgt[XYZ];                                 // M914 X Y Z
@@ -826,7 +826,7 @@ void MarlinSettings::postprocess() {
         #endif
       #else
         100, 100, 3,          // X, Y, Z
-        100, 100, 3,          // X2, Y2, Z2
+        100, 100, 3, 3,       // X2, Y2, Z2, Z3
         30, 30, 30, 30, 30    // E0, E1, E2, E3, E4
       #endif
     };
