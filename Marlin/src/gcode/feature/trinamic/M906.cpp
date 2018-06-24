@@ -65,7 +65,7 @@ void GcodeSuite::M906() {
           if (index == 1) TMC_SET_CURRENT(Z2);
         #endif
         #if Z3_IS_TRINAMIC
-          if (index == 1) TMC_SET_CURRENT(Z3);
+          if (index == 2) TMC_SET_CURRENT(Z3);
         #endif
         break;
       case E_AXIS: {

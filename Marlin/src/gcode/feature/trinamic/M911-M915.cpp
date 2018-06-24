@@ -191,7 +191,7 @@ void GcodeSuite::M912() {
             if (index == 1) TMC_SET_PWMTHRS(Z,Z2);
           #endif
           #if Z3_IS_TRINAMIC
-            if (index == 1) TMC_SET_PWMTHRS(Z,Z3);
+            if (index == 2) TMC_SET_PWMTHRS(Z,Z3);
           #endif
           break;
         case E_AXIS: {
