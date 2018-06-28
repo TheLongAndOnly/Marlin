@@ -518,13 +518,13 @@ void Endstops::update() {
       #if HAS_Z2_MIN
         UPDATE_ENDSTOP_BIT(Z2, MIN);
       #else
-        COPY_LIVE_STATE(live_state, Z_MIN, Z2_MIN);
+        COPY_LIVE_STATE(Z_MIN, Z2_MIN);
       #endif
       #if ENABLED(Z_TRIPLE_ENDSTOPS)
         #if HAS_Z3_MIN
           UPDATE_ENDSTOP_BIT(Z3, MIN);
         #else
-          COPY_LIVE_STATE(live_state, Z_MIN, Z3_MIN);
+          COPY_LIVE_STATE(Z_MIN, Z3_MIN);
         #endif
       #endif
     #elif ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
@@ -546,13 +546,13 @@ void Endstops::update() {
       #if HAS_Z2_MAX
         UPDATE_ENDSTOP_BIT(Z2, MAX);
       #else
-        COPY_LIVE_STATE(live_state, Z_MAX, Z2_MAX);
+        COPY_LIVE_STATE(Z_MAX, Z2_MAX);
       #endif
       #if ENABLED(Z_TRIPLE_ENDSTOPS)
         #if HAS_Z3_MAX
           UPDATE_ENDSTOP_BIT(Z3, MAX);
         #else
-          COPY_LIVE_STATE(live_state, Z_MAX, Z3_MAX);
+          COPY_LIVE_STATE(Z_MAX, Z3_MAX);
         #endif
       #endif
     #elif DISABLED(Z_MIN_PROBE_ENDSTOP) || Z_MAX_PIN != Z_MIN_PROBE_PIN
