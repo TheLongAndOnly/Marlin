@@ -107,8 +107,6 @@ Stepper stepper; // Singleton
 
 // public:
 
-block_t* Stepper::current_block = NULL;  // A pointer to the block currently being traced
-
 #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
   bool Stepper::homing_dual_axis = false;
 #endif
@@ -122,6 +120,8 @@ block_t* Stepper::current_block = NULL;  // A pointer to the block currently bei
 #endif
 
 // private:
+
+block_t* Stepper::current_block = NULL; // A pointer to the block currently being traced
 
 uint8_t Stepper::last_direction_bits = 0,
         Stepper::axis_did_move;
@@ -1359,7 +1359,7 @@ void Stepper::stepper_pulse_phase_isr() {
   // Get the timer count and estimate the end of the pulse
   hal_timer_t pulse_end = HAL_timer_get_count(PULSE_TIMER_NUM) + hal_timer_t(MIN_PULSE_TICKS);
 
-  const hal_timer_t added_step_ticks = ADDED_STEP_TICKS;
+  const hal_timer_t added_step_ticks = hal_timer_t(ADDED_STEP_TICKS);
 
   // Take multiple steps per interrupt (For high speed moves)
   do {
@@ -1700,6 +1700,7 @@ uint32_t Stepper::stepper_block_phase_isr() {
       acceleration_time = deceleration_time = 0;
 
       uint8_t oversampling = 0;                         // Assume we won't use it
+
       #if ENABLED(ADAPTIVE_STEP_SMOOTHING)
         // At this point, we must decide if we can use Stepper movement axis smoothing.
         uint32_t max_rate = current_block->nominal_rate;  // Get the maximum rate (maximum event speed)
@@ -1854,7 +1855,7 @@ uint32_t Stepper::stepper_block_phase_isr() {
     // Get the timer count and estimate the end of the pulse
     hal_timer_t pulse_end = HAL_timer_get_count(PULSE_TIMER_NUM) + hal_timer_t(MIN_PULSE_TICKS);
 
-    const hal_timer_t added_step_ticks = ADDED_STEP_TICKS;
+    const hal_timer_t added_step_ticks = hal_timer_t(ADDED_STEP_TICKS);
 
     // Step E stepper if we have steps
     while (LA_steps) {
@@ -1908,6 +1909,34 @@ uint32_t Stepper::stepper_block_phase_isr() {
     return interval;
   }
 #endif // LIN_ADVANCE
+
+// Check if the given block is busy or not - Must not be called from ISR contexts
+// The current_block could change in the middle of the read by an Stepper ISR, so
+// we must explicitly prevent that!
+bool Stepper::is_block_busy(const block_t* const block) {
+  #ifdef __AVR__
+    // A SW memory barrier, to ensure GCC does not overoptimize loops
+    #define sw_barrier() asm volatile("": : :"memory");
+
+    // Keep reading until 2 consecutive reads return the same value,
+    // meaning there was no update in-between caused by an interrupt.
+    // This works because stepper ISRs happen at a slower rate than
+    // successive reads of a variable, so 2 consecutive reads with
+    // the same value means no interrupt updated it.
+    block_t* vold, *vnew = current_block;
+    sw_barrier();
+    do {
+      vold = vnew;
+      vnew = current_block;
+      sw_barrier();
+    } while (vold != vnew);
+  #else
+    block_t *vnew = current_block;
+  #endif
+
+  // Return if the block is busy or not
+  return block == vnew;
+}
 
 void Stepper::init() {
 
@@ -2635,47 +2664,47 @@ void Stepper::report_positions() {
     if (ms3 >= 0) switch (driver) {
       #if HAS_X_MICROSTEPS || HAS_X2_MICROSTEPS
         case 0: 
-        #if HAS_X_MICROSTEPS
+        #if HAS_X_MICROSTEPS && PIN_EXISTS(X_MS3)
           WRITE(X_MS3_PIN, ms3);
         #endif
-        #if HAS_X2_MICROSTEPS
+        #if HAS_X2_MICROSTEPS && PIN_EXISTS(X2_MS3)
           WRITE(X2_MS3_PIN, ms3);
         #endif
           break;
       #endif
       #if HAS_Y_MICROSTEPS || HAS_Y2_MICROSTEPS
         case 1:
-        #if HAS_Y_MICROSTEPS 
+        #if HAS_Y_MICROSTEPS && PIN_EXISTS(Y_MS3)
           WRITE(Y_MS3_PIN, ms3);
         #endif 
-        #if HAS_Y2_MICROSTEPS 
+        #if HAS_Y2_MICROSTEPS && PIN_EXISTS(Y2_MS3)
           WRITE(Y2_MS3_PIN, ms3);
         #endif 
           break;
       #endif
       #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS
         case 2:
-        #if HAS_Z_MICROSTEPS
+        #if HAS_Z_MICROSTEPS && PIN_EXISTS(Z_MS3)
           WRITE(Z_MS3_PIN, ms3);
         #endif
-        #if HAS_Z2_MICROSTEPS
+        #if HAS_Z2_MICROSTEPS && PIN_EXISTS(Z2_MS3)
           WRITE(Z2_MS3_PIN, ms3);
         #endif
           break;
       #endif
-      #if HAS_E0_MICROSTEPS
+      #if HAS_E0_MICROSTEPS && PIN_EXISTS(E0_MS3)
         case 3: WRITE(E0_MS3_PIN, ms3); break;
       #endif
-      #if HAS_E1_MICROSTEPS
+      #if HAS_E1_MICROSTEPS && PIN_EXISTS(E1_MS3)
         case 4: WRITE(E1_MS3_PIN, ms3); break;
       #endif
-      #if HAS_E2_MICROSTEPS
+      #if HAS_E2_MICROSTEPS && PIN_EXISTS(E2_MS3)
         case 5: WRITE(E2_MS3_PIN, ms3); break;
       #endif
-      #if HAS_E3_MICROSTEPS
+      #if HAS_E3_MICROSTEPS && PIN_EXISTS(E3_MS3)
         case 6: WRITE(E3_MS3_PIN, ms3); break;
       #endif
-      #if HAS_E4_MICROSTEPS
+      #if HAS_E4_MICROSTEPS && PIN_EXISTS(E4_MS3)
         case 7: WRITE(E4_MS3_PIN, ms3); break;
       #endif
     }
@@ -2705,49 +2734,65 @@ void Stepper::report_positions() {
     #if HAS_X_MICROSTEPS
       SERIAL_PROTOCOL(READ(X_MS1_PIN));
       SERIAL_PROTOCOL(READ(X_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(X_MS3_PIN));
+      #if PIN_EXISTS(X_MS3)
+        SERIAL_PROTOCOLLN(READ(X_MS3_PIN));
+      #endif
     #endif
     #if HAS_Y_MICROSTEPS
       SERIAL_PROTOCOLPGM("Y: ");
       SERIAL_PROTOCOL(READ(Y_MS1_PIN));
       SERIAL_PROTOCOL(READ(Y_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(Y_MS3_PIN));
+      #if PIN_EXISTS(Y_MS3)
+        SERIAL_PROTOCOLLN(READ(Y_MS3_PIN));
+      #endif
     #endif
     #if HAS_Z_MICROSTEPS
       SERIAL_PROTOCOLPGM("Z: ");
       SERIAL_PROTOCOL(READ(Z_MS1_PIN));
       SERIAL_PROTOCOL(READ(Z_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(Z_MS3_PIN));
+      #if PIN_EXISTS(Z_MS3)
+        SERIAL_PROTOCOLLN(READ(Z_MS3_PIN));
+      #endif
     #endif
     #if HAS_E0_MICROSTEPS
       SERIAL_PROTOCOLPGM("E0: ");
       SERIAL_PROTOCOL(READ(E0_MS1_PIN));
       SERIAL_PROTOCOL(READ(E0_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(E0_MS3_PIN));
+      #if PIN_EXISTS(E0_MS3)
+        SERIAL_PROTOCOLLN(READ(E0_MS3_PIN));
+      #endif
     #endif
     #if HAS_E1_MICROSTEPS
       SERIAL_PROTOCOLPGM("E1: ");
       SERIAL_PROTOCOL(READ(E1_MS1_PIN));
       SERIAL_PROTOCOL(READ(E1_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(E1_MS3_PIN));
+      #if PIN_EXISTS(E1_MS3)
+        SERIAL_PROTOCOLLN(READ(E1_MS3_PIN));
+      #endif
     #endif
     #if HAS_E2_MICROSTEPS
       SERIAL_PROTOCOLPGM("E2: ");
       SERIAL_PROTOCOL(READ(E2_MS1_PIN));
       SERIAL_PROTOCOL(READ(E2_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(E2_MS3_PIN));
+      #if PIN_EXISTS(E2_MS3)
+        SERIAL_PROTOCOLLN(READ(E2_MS3_PIN));
+      #endif
     #endif
     #if HAS_E3_MICROSTEPS
       SERIAL_PROTOCOLPGM("E3: ");
       SERIAL_PROTOCOL(READ(E3_MS1_PIN));
       SERIAL_PROTOCOL(READ(E3_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(E3_MS3_PIN));
+      #if PIN_EXISTS(E3_MS3)
+        SERIAL_PROTOCOLLN(READ(E3_MS3_PIN));
+      #endif
     #endif
     #if HAS_E4_MICROSTEPS
       SERIAL_PROTOCOLPGM("E4: ");
       SERIAL_PROTOCOL(READ(E4_MS1_PIN));
       SERIAL_PROTOCOL(READ(E4_MS2_PIN));
-      SERIAL_PROTOCOLLN(READ(E4_MS3_PIN));
+      #if PIN_EXISTS(E4_MS3)
+        SERIAL_PROTOCOLLN(READ(E4_MS3_PIN));
+      #endif
     #endif
   }
 
