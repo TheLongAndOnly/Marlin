@@ -719,7 +719,7 @@ void setup() {
     tmc2208_serial_begin();
   #endif
   #if ENABLED(HAS_BOARD_INIT)
-    board_init();
+    BOARD_INIT();
   #endif
 
   // Check startup - does nothing if bootloader sets MCUSR to 0

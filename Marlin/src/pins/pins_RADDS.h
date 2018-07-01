@@ -103,7 +103,7 @@
 // For Extension Board V2
 // http://doku.radds.org/dokumentation/extension-board
 #define HAS_RADDS_EXTENSION
-#if ENABLED(HAS_RADD_EXTENSION)
+#if ENABLED(HAS_RADDS_EXTENSION)
   #define RADDS_EXT_USE_Z3
   #if ENABLED(RADDS_EXT_USE_Z3)
     #define Z3_STEP_PIN        35
@@ -141,13 +141,12 @@
   #define Z2_MS3_PIN         69   // shared with E3_MS3_PIN
 
   #define RADDS_EXT_VDD1_PIN 25
-  #define RADDS_EXT_VDD2_PIN 53
+  #define RADDS_EXT_VDD2_PIN 66
 
   #define HAS_BOARD_INIT
-  void board_init() {
-    OUT_WRITE(RADDS_EXT_VDD1_PIN, HIGH);
+  #define BOARD_INIT() \
+    OUT_WRITE(RADDS_EXT_VDD1_PIN, HIGH); \
     OUT_WRITE(RADDS_EXT_VDD2_PIN, HIGH);
-  } 
 #endif
 //
 // Temperature Sensors
