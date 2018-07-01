@@ -145,6 +145,7 @@
 
   #define BOARD_INIT() OUT_WRITE(RADDS_EXT_VDD1_PIN, HIGH); OUT_WRITE(RADDS_EXT_VDD2_PIN, HIGH)
 #endif
+
 //
 // Temperature Sensors
 //
