@@ -483,7 +483,7 @@
   #define MICROSTEP4 LOW,HIGH,LOW
   #define MICROSTEP8 HIGH,HIGH,LOW
   #define MICROSTEP16 LOW,LOW,HIGH
-  #define MICROSTEP32 HIGH,LOW,HIGH
+  #define MICROSTEP32 HIGH,HIGH,HIGH
 #endif
 
 // Microstep setting (Only functional when stepper driver microstep pins are connected to MCU.
