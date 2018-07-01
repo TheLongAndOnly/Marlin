@@ -127,13 +127,9 @@
   #define Z2_MS3_PIN         69   // shared with E3_MS3_PIN
 
   #define RADDS_EXT_VDD1_PIN 25
-  #define RADDS_EXT_VDD2_PIN 53
+  #define RADDS_EXT_VDD2_PIN 66
 
-  #define HAS_BOARD_INIT
-  void board_init() {
-    OUT_WRITE(RADDS_EXT_VDD1_PIN, HIGH);
-    OUT_WRITE(RADDS_EXT_VDD2_PIN, HIGH);
-  } 
+  #define BOARD_INIT() OUT_WRITE(RADDS_EXT_VDD1_PIN, HIGH); OUT_WRITE(RADDS_EXT_VDD2_PIN, HIGH)
 #endif
 //
 // Temperature Sensors
