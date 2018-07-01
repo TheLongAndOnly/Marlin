@@ -719,7 +719,7 @@ void setup() {
     tmc2208_serial_begin();
   #endif
 
-  #if ENABLED(BOARD_INIT)
+  #if ENABLED(HAS_BOARD_INIT)
     BOARD_INIT();
   #endif
 
