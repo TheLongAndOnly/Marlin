@@ -109,18 +109,20 @@
 //  #define E3_CS_PIN         6
 // #endif
 
+// Power PIN for 3.3V is 25 
 #define Z2_STEP_PIN        29
 #define Z2_DIR_PIN         27
 #define Z2_ENABLE_PIN      31
 #ifndef Z2_CS_PIN
- #define Z2_CS_PIN        39
+ #define Z2_CS_PIN        39 // does not make sense either
 #endif
 
+// Power PIN for 3.3V is CANTX (D53)
 #define Z3_STEP_PIN        35
 #define Z3_DIR_PIN         33
 #define Z3_ENABLE_PIN      37
 #ifndef Z3_CS_PIN
- #define Z3_CS_PIN         6
+ #define Z3_CS_PIN         6 // does not seem to make sense
 #endif
 
 // Microstepping pins - Mapping not from fastio.h (?)
