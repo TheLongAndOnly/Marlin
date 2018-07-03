@@ -100,7 +100,8 @@
   #define E2_CS_PIN        35
 #endif
 
-// For Extension Board V2
+//
+// Extension Board V2
 // http://doku.radds.org/dokumentation/extension-board
 #define HAS_RADDS_EXTENSION
 #if ENABLED(HAS_RADDS_EXTENSION)
