@@ -322,7 +322,7 @@
   #endif
 #endif
 
-//#define Z_DUAL_STEPPER_DRIVERS
+#define Z_DUAL_STEPPER_DRIVERS
 #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
   //#define Z_DUAL_ENDSTOPS
   #if ENABLED(Z_DUAL_ENDSTOPS)
@@ -399,6 +399,8 @@
   #define Z_STEPPER_ALIGN_YPOS {100, 100}
   // set number of iterations to align
   #define Z_STEPPER_ALIGN_ITERATIONS 3
+  // enable to restore leveling setup after operation
+  #define RESTORE_LEVELING_AFTER_G34
 #endif
 
 // @section machine
