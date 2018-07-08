@@ -130,7 +130,38 @@ void GcodeSuite::G34() {
   // start calibration iterations
   for (uint8_t iteration = 0; iteration < iterations; ++iteration) {
     // for each iteration we move through all probe positions (one per Z-Stepper)
-    
+    for (uint8_t zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
+      SYNC_PLAN_POSITION_KINEMATIC();
+
+      destination[X_AXIS] = z_auto_align_xpos[zstepper];
+      destination[Y_AXIS] = z_auto_align_ypos[zstepper];
+      destination[Z_AXIS] = current_position[Z_AXIS]; // Z is already at the right height
+
+      #if HOMING_Z_WITH_PROBE
+        destination[X_AXIS] -= X_PROBE_OFFSET_FROM_EXTRUDER;
+        destination[Y_AXIS] -= Y_PROBE_OFFSET_FROM_EXTRUDER;
+      #endif
+
+      if (!position_is_reachable(destination[X_AXIS], destination[Y_AXIS])) {
+        // we need to stop here
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOLNPGM("> cannot reach probe position.");
+            SERIAL_ECHOLNPGM("<<< G34");
+          }
+        #endif
+        return;        
+      }
+
+      // z-bump position
+      
+
+      // move to the positions
+      do_blocking_move_to_xy(destination[X_AXIS], destination[Y_AXIS]);
+
+      // home the axis until the probe fires
+      
+    }
   }
 
   // Restore the active tool after homing
@@ -143,8 +174,10 @@ void GcodeSuite::G34() {
     tool_change(old_tool_index, 0, NO_FETCH);
   #endif
 
-  #if ENABLED(RESTORE_LEVELING_AFTER_G34)
-    set_bed_leveling_enabled(leveling_was_active);
+  #if HAS_LEVELING  
+    #if ENABLED(RESTORE_LEVELING_AFTER_G34)
+      set_bed_leveling_enabled(leveling_was_active);
+    #endif
   #endif
 
   // we are finished
