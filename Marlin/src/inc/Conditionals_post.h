@@ -1448,4 +1448,10 @@
   #define USE_EXECUTE_COMMANDS_IMMEDIATE
 #endif
 
+#if ENABLED(Z_DUAL_STEPPER_DRIVERS)
+  #define Z_STEPPER_COUNT 2
+#else
+  #define Z_STEPPER_COUNT 1
+#endif
+
 #endif // CONDITIONALS_POST_H

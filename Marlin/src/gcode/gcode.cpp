@@ -256,6 +256,10 @@ void GcodeSuite::process_parsed_command(
         case 33: G33(); break;                                    // G33: Delta Auto-Calibration
       #endif
 
+      #if ENABLED(Z_STEPPERS_AUTO_ALIGN)
+        case 34: G34(); break;
+      #endif
+
       #if ENABLED(G38_PROBE_TARGET)
         case 38:                                                  // G38.2 & G38.3
           if (parser.subcode == 2 || parser.subcode == 3)
