@@ -22,7 +22,7 @@
 
 #include "../../inc/MarlinConfig.h"
 
-#if ENABLED(Z_STEPPERS_AUTO_ALIGN)
+#if ENABLED(Z_STEPPER_AUTO_ALIGN)
 
 #include "../gcode.h"
 #include "../../module/delta.h"
@@ -45,8 +45,8 @@
 
 // Data
 uint8_t z_auto_align_iterations = Z_STEPPER_ALIGN_ITERATIONS;
-float z_auto_align_xpos = Z_STEPPER_ALIGN_XPOS;
-float z_auto_align_ypos = Z_STEPPER_ALIGN_YPOS;
+float z_auto_align_xpos[] = Z_STEPPER_ALIGN_XPOS;
+float z_auto_align_ypos[] = Z_STEPPER_ALIGN_YPOS;
 
 /**
  * G34 - Z-Stepper automatic alignment
@@ -78,6 +78,7 @@ void GcodeSuite::M422() {
   if (!WITHIN(x_pos, X_MIN_POS, X_MAX_POS)) {
     SERIAL_PROTOCOLLNPGM("?(X)-Position is implausible out of limits.");
     return;
+  }
   else {
     z_auto_align_xpos[z_stepper-1] = x_pos;
   }
@@ -86,6 +87,7 @@ void GcodeSuite::M422() {
   if (!WITHIN(y_pos, Y_MIN_POS, Y_MAX_POS)) {
     SERIAL_PROTOCOLLNPGM("?(Y)-Position is implausible out of limits.");
     return;
+  }
   else {
     z_auto_align_ypos[z_stepper-1] = y_pos;
   }
@@ -94,9 +96,10 @@ void GcodeSuite::M422() {
   if (0 == iterations || iterations > 20) {
     SERIAL_PROTOCOLLNPGM("?Z-Stepper (I)teration definition out of bounds (1, 20).");
     return;
+  }
   else {
     z_auto_align_iterations = iterations;
   }
 }
 
-#endif // Z_STEPPERS_AUTO_ALIGN
+#endif // Z_STEPPER_AUTO_ALIGN
