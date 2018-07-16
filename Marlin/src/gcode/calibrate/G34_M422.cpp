@@ -169,6 +169,9 @@ void GcodeSuite::G34() {
       // we enable each stepper separately
       stepper.set_z_lock(true);
       stepper.set_z2_lock(true);
+      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        stepper.set_z3_lock(true);
+      #endif
 
       // calculate current stepper move
       float z_align_move = z_measured_max - z_measured[zstepper];
@@ -180,14 +183,22 @@ void GcodeSuite::G34() {
         case 1:
           stepper.set_z2_lock(false);
           break;
+      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        case 3:
+          stepper.set_z3_lock(false);
+          break;
+      #endif
       }
 
       // we will be losing home position and need to re-home
-      do_blocking_move_z(z_align_move);
+      do_blocking_move_to_z(z_align_move);
     }
 
     stepper.set_z_lock(false);
     stepper.set_z2_lock(false);
+    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+      stepper.set_z3_lock(false);
+    #endif
 
     stepper.set_separate_multi_axis(false);
 
