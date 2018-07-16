@@ -322,7 +322,7 @@
   #endif
 #endif
 
-//#define Z_DUAL_STEPPER_DRIVERS
+#define Z_DUAL_STEPPER_DRIVERS
 #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
   //#define Z_DUAL_ENDSTOPS
   #if ENABLED(Z_DUAL_ENDSTOPS)
@@ -399,6 +399,22 @@
 
 // Enable this if X or Y can't home without homing the other axis first.
 //#define CODEPENDENT_XY_HOMING
+
+// @section homing
+
+// allow automatic alignment of z steppers for dual z stepper configuration and movable probe
+#define Z_STEPPER_AUTO_ALIGN
+#if ENABLED(Z_STEPPER_AUTO_ALIGN)
+  // define probe x-position for Z1, Z2
+  #define Z_STEPPER_ALIGN_XPOS {10, 190}
+  #define Z_STEPPER_ALIGN_YPOS {100, 100}
+  // set number of iterations to align
+  #define Z_STEPPER_ALIGN_ITERATIONS 3
+  // enable to restore leveling setup after operation
+  #define RESTORE_LEVELING_AFTER_G34
+  // amount of z increase prior to moving probe
+  #define Z_STEPPER_ALIGN_SAFEHEIGHT 5
+#endif
 
 // @section machine
 

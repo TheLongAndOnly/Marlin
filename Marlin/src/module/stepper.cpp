@@ -107,7 +107,7 @@ Stepper stepper; // Singleton
 
 // public:
 
-#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS) || ENABLED(Z_STEPPER_AUTO_ALIGN)
   bool Stepper::separate_multi_axis = false;
 #endif
 
@@ -134,10 +134,10 @@ bool Stepper::abort_current_block;
 #if ENABLED(Y_DUAL_ENDSTOPS)
   bool Stepper::locked_Y_motor = false, Stepper::locked_Y2_motor = false;
 #endif
-#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS) || ENABLED(Z_STEPPER_AUTO_ALIGN)
   bool Stepper::locked_Z_motor = false, Stepper::locked_Z2_motor = false;
 #endif
-#if ENABLED(Z_TRIPLE_ENDSTOPS)
+#if ENABLED(Z_TRIPLE_ENDSTOPS) || (ENABLED(Z_STEPPER_AUTO_ALIGN) && ENABLED(Z_TRIPLE_STEPPER_DRIVERS))
   bool Stepper::locked_Z3_motor = false;
 #endif
 

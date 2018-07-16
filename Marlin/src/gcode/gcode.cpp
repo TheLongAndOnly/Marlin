@@ -256,6 +256,10 @@ void GcodeSuite::process_parsed_command(
         case 33: G33(); break;                                    // G33: Delta Auto-Calibration
       #endif
 
+      #if ENABLED(Z_STEPPER_AUTO_ALIGN)
+        case 34: G34(); break;
+      #endif
+
       #if ENABLED(G38_PROBE_TARGET)
         case 38:                                                  // G38.2 & G38.3
           if (parser.subcode == 2 || parser.subcode == 3)
@@ -656,6 +660,10 @@ void GcodeSuite::process_parsed_command(
         case 867: M867(); break;                                  // M867: Toggle error correction
         case 868: M868(); break;                                  // M868: Set error correction threshold
         case 869: M869(); break;                                  // M869: Report axis error
+      #endif
+
+      #if ENABLED(Z_STEPPER_AUTO_ALIGN)
+        case 422: M422(); break;
       #endif
 
       case 999: M999(); break;                                    // M999: Restart after being Stopped
