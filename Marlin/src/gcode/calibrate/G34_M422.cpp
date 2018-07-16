@@ -29,7 +29,6 @@
 #include "../../module/motion.h"
 #include "../../module/stepper.h"
 #include "../../module/endstops.h"
-#include "../../lcd/ultralcd.h"
 
 #if HOTENDS > 1
   #include "../../module/tool_change.h"
@@ -128,21 +127,23 @@ void GcodeSuite::G34() {
   #endif
 
   // start calibration iterations
+  float z_measured[Z_STEPPER_COUNT] = { 0.0f };
   for (uint8_t iteration = 0; iteration < iterations; ++iteration) {
+    // reset maximum value
+    float z_measured_max = 0.0f;
     // for each iteration we move through all probe positions (one per Z-Stepper)
-    for (uint8_t zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
-      SYNC_PLAN_POSITION_KINEMATIC();
+    uint8_t zstepper;
+    for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
 
-      destination[X_AXIS] = z_auto_align_xpos[zstepper];
-      destination[Y_AXIS] = z_auto_align_ypos[zstepper];
-      destination[Z_AXIS] = current_position[Z_AXIS]; // Z is already at the right height
+      float pos_x = z_auto_align_xpos[zstepper];
+      float pos_y = z_auto_align_ypos[zstepper];
 
       #if HOMING_Z_WITH_PROBE
-        destination[X_AXIS] -= X_PROBE_OFFSET_FROM_EXTRUDER;
-        destination[Y_AXIS] -= Y_PROBE_OFFSET_FROM_EXTRUDER;
+        pos_x -= X_PROBE_OFFSET_FROM_EXTRUDER;
+        pos_y -= Y_PROBE_OFFSET_FROM_EXTRUDER;
       #endif
 
-      if (!position_is_reachable(destination[X_AXIS], destination[Y_AXIS])) {
+      if (!position_is_reachable(pos_x, pos_y)) {
         // we need to stop here
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) {
@@ -153,15 +154,48 @@ void GcodeSuite::G34() {
         return;        
       }
 
-      // z-bump position
-      
+      // remember the measured z height per stepper
+      z_measured[zstepper] = probe_pt(pos_x, pos_y, PROBE_PT_RAISE);
 
-      // move to the positions
-      do_blocking_move_to_xy(destination[X_AXIS], destination[Y_AXIS]);
-
-      // home the axis until the probe fires
-      
+      // remember the maximum position to calculate the correction
+      z_measured_max = MAX(z_measured_max, z_measured[zstepper]);
     }
+
+    // correct stepper offsets and re-iterate
+    for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
+      // ensure 
+      stepper.set_homing_dual_axis(true);
+  
+      // we enable each stepper separately
+      stepper.set_z_lock(true);
+      stepper.set_z2_lock(true);
+
+      // calculate current stepper move
+      float z_align_move = z_measured_max - z_measured[zstepper];
+
+      switch(zstepper) {
+        case 0:
+          stepper.set_z_lock(false);
+          break;
+        case 1:
+          stepper.set_z2_lock(false);
+          break;
+      }
+
+      // we will be losing home position and need to re-home
+      do_blocking_move_z(z_align_move);
+    }
+
+    stepper.set_z_lock(false);
+    stepper.set_z2_lock(false);
+
+    stepper.set_homing_dual_axis(false);
+
+    // after this operation we have lost the z homing position
+    set_axis_is_not_at_home(Z_AXIS);
+    
+    // rehome
+    gcode.home_all_axes();
   }
 
   // Restore the active tool after homing
