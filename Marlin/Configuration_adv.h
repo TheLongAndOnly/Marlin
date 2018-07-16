@@ -412,6 +412,8 @@
   #define Z_STEPPER_ALIGN_ITERATIONS 3
   // enable to restore leveling setup after operation
   #define RESTORE_LEVELING_AFTER_G34
+  // amount of z increase prior to moving probe
+  #define Z_STEPPER_ALIGN_SAFEHEIGHT 5
 #endif
 
 // @section machine

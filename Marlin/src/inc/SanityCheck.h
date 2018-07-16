@@ -1824,6 +1824,10 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
     #error "Z_STEPPER_AUTO_ALIGN requires at least Z_DUAL_STEPPER_DRIVERS."
   #endif
 
+  #if !(HAS_BED_PROBE || HOMING_Z_WITH_PROBE || ENABLED(BLTOUCH))
+    #error "Z_STEPPER_AUTO_ALIGN requires a Z-bed probe."
+  #endif
+
   constexpr float sanity_arr_z_align_x[] = Z_STEPPER_ALIGN_XPOS,
                   sanity_arr_z_align_y[] = Z_STEPPER_ALIGN_YPOS;
   static_assert(COUNT(sanity_arr_z_align_x) >= Z_STEPPER_COUNT, "Z_STEPPER_ALIGN_XPOS requires more elements.");
