@@ -264,11 +264,11 @@ class Stepper {
     #if ENABLED(Y_DUAL_ENDSTOPS)
       static bool locked_Y_motor, locked_Y2_motor;
     #endif
-    #if ENABLED(Z_DUAL_ENDSTOPS)
+    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
       static bool locked_Z_motor, locked_Z2_motor;
     #endif
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
-      static bool locked_Z_motor, locked_Z2_motor, locked_Z3_motor;
+      static bool locked_Z3_motor;
     #endif
 
     static uint32_t acceleration_time, deceleration_time; // time measured in Stepper Timer ticks
