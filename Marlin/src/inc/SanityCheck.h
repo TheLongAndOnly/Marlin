@@ -266,7 +266,7 @@
   #error "MEASURED_(UPPER|LOWER)_LIMIT is now FILWIDTH_ERROR_MARGIN. Please update your configuration."
 #elif defined(HAVE_TMCDRIVER)
   #error "HAVE_TMCDRIVER is now HAVE_TMC26X. Please update your Configuration_adv.h."
-#elif defined(X_IS_TMC) || defined(X2_IS_TMC) || defined(Y_IS_TMC) || defined(Y2_IS_TMC) || defined(Z_IS_TMC) || defined(Z2_IS_TMC) \
+#elif defined(X_IS_TMC) || defined(X2_IS_TMC) || defined(Y_IS_TMC) || defined(Y2_IS_TMC) || defined(Z_IS_TMC) || defined(Z2_IS_TMC) || defined(Z3_IS_TMC) \
    || defined(E0_IS_TMC) || defined(E1_IS_TMC) || defined(E2_IS_TMC) || defined(E3_IS_TMC) || defined(E4_IS_TMC)
   #error "[AXIS]_IS_TMC is now [AXIS]_IS_TMC26X. Please update your Configuration_adv.h."
 #elif defined(AUTOMATIC_CURRENT_CONTROL)
@@ -354,6 +354,8 @@
   #error "Y_DUAL_STEPPER_DRIVERS requires Y2 pins (and an extra E plug)."
 #elif ENABLED(Z_DUAL_STEPPER_DRIVERS) && (!HAS_Z2_ENABLE || !HAS_Z2_STEP || !HAS_Z2_DIR)
   #error "Z_DUAL_STEPPER_DRIVERS requires Z2 pins (and an extra E plug)."
+#elif ENABLED(Z_TRIPLE_STEPPER_DRIVERS) && (!HAS_Z2_ENABLE || !HAS_Z2_STEP || !HAS_Z2_DIR || !HAS_Z3_ENABLE || !HAS_Z3_STEP || !HAS_Z3_DIR)
+  #error "Z_TRIPLE_STEPPER_DRIVERS requires Z3 pins (and an extra E plug)."
 #endif
 
 /**
@@ -822,6 +824,9 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
   #if Z_PROBE_LOW_POINT > 0
     #error "Z_PROBE_LOW_POINT must be less than or equal to 0."
   #endif
+
+  static_assert(int(X_PROBE_OFFSET_FROM_EXTRUDER) == (X_PROBE_OFFSET_FROM_EXTRUDER), "X_PROBE_OFFSET_FROM_EXTRUDER must be an integer value.");
+  static_assert(int(Y_PROBE_OFFSET_FROM_EXTRUDER) == (Y_PROBE_OFFSET_FROM_EXTRUDER), "Y_PROBE_OFFSET_FROM_EXTRUDER must be an integer value.");
 
 #else
 
@@ -1321,6 +1326,46 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
     #error "Z_DUAL_ENDSTOPS is not compatible with DELTA."
   #endif
 #endif
+#if ENABLED(Z_TRIPLE_ENDSTOPS)
+  #if !Z2_USE_ENDSTOP
+    #error "You must set Z2_USE_ENDSTOP with Z_TRIPLE_ENDSTOPS."
+  #elif Z2_USE_ENDSTOP == _XMIN_ && DISABLED(USE_XMIN_PLUG)
+    #error "USE_XMIN_PLUG is required when Z2_USE_ENDSTOP is _XMIN_."
+  #elif Z2_USE_ENDSTOP == _XMAX_ && DISABLED(USE_XMAX_PLUG)
+    #error "USE_XMAX_PLUG is required when Z2_USE_ENDSTOP is _XMAX_."
+  #elif Z2_USE_ENDSTOP == _YMIN_ && DISABLED(USE_YMIN_PLUG)
+    #error "USE_YMIN_PLUG is required when Z2_USE_ENDSTOP is _YMIN_."
+  #elif Z2_USE_ENDSTOP == _YMAX_ && DISABLED(USE_YMAX_PLUG)
+    #error "USE_YMAX_PLUG is required when Z2_USE_ENDSTOP is _YMAX_."
+  #elif Z2_USE_ENDSTOP == _ZMIN_ && DISABLED(USE_ZMIN_PLUG)
+    #error "USE_ZMIN_PLUG is required when Z2_USE_ENDSTOP is _ZMIN_."
+  #elif Z2_USE_ENDSTOP == _ZMAX_ && DISABLED(USE_ZMAX_PLUG)
+    #error "USE_ZMAX_PLUG is required when Z2_USE_ENDSTOP is _ZMAX_."
+  #elif !HAS_Z2_MIN && !HAS_Z2_MAX
+    #error "Z2_USE_ENDSTOP has been assigned to a nonexistent endstop!"
+  #elif ENABLED(DELTA)
+    #error "Z_TRIPLE_ENDSTOPS is not compatible with DELTA."
+  #endif
+  #if !Z3_USE_ENDSTOP
+    #error "You must set Z3_USE_ENDSTOP with Z_TRIPLE_ENDSTOPS."
+  #elif Z3_USE_ENDSTOP == _XMIN_ && DISABLED(USE_XMIN_PLUG)
+    #error "USE_XMIN_PLUG is required when Z3_USE_ENDSTOP is _XMIN_."
+  #elif Z3_USE_ENDSTOP == _XMAX_ && DISABLED(USE_XMAX_PLUG)
+    #error "USE_XMAX_PLUG is required when Z3_USE_ENDSTOP is _XMAX_."
+  #elif Z3_USE_ENDSTOP == _YMIN_ && DISABLED(USE_YMIN_PLUG)
+    #error "USE_YMIN_PLUG is required when Z3_USE_ENDSTOP is _YMIN_."
+  #elif Z3_USE_ENDSTOP == _YMAX_ && DISABLED(USE_YMAX_PLUG)
+    #error "USE_YMAX_PLUG is required when Z3_USE_ENDSTOP is _YMAX_."
+  #elif Z3_USE_ENDSTOP == _ZMIN_ && DISABLED(USE_ZMIN_PLUG)
+    #error "USE_ZMIN_PLUG is required when Z3_USE_ENDSTOP is _ZMIN_."
+  #elif Z3_USE_ENDSTOP == _ZMAX_ && DISABLED(USE_ZMAX_PLUG)
+    #error "USE_ZMAX_PLUG is required when Z3_USE_ENDSTOP is _ZMAX_."
+  #elif !HAS_Z3_MIN && !HAS_Z3_MAX
+    #error "Z3_USE_ENDSTOP has been assigned to a nonexistent endstop!"
+  #elif ENABLED(DELTA)
+    #error "Z_TRIPLE_ENDSTOPS is not compatible with DELTA."
+  #endif
+#endif
 
 /**
  * emergency-command parser
@@ -1464,6 +1509,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
       || ENABLED( Y2_IS_TMC26X ) \
       || ENABLED(  Z_IS_TMC26X ) \
       || ENABLED( Z2_IS_TMC26X ) \
+      || ENABLED( Z3_IS_TMC26X ) \
       || ENABLED( E0_IS_TMC26X ) \
       || ENABLED( E1_IS_TMC26X ) \
       || ENABLED( E2_IS_TMC26X ) \
@@ -1483,6 +1529,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
       || ENABLED( Y2_IS_TMC2130 ) \
       || ENABLED(  Z_IS_TMC2130 ) \
       || ENABLED( Z2_IS_TMC2130 ) \
+      || ENABLED( Z3_IS_TMC2130 ) \
       || ENABLED( E0_IS_TMC2130 ) \
       || ENABLED( E1_IS_TMC2130 ) \
       || ENABLED( E2_IS_TMC2130 ) \
@@ -1505,6 +1552,8 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
     #error "Z_CS_PIN is required for Z_IS_TMC2130. Define Z_CS_PIN in Configuration_adv.h."
   #elif ENABLED(Z2_IS_TMC2130) && !PIN_EXISTS(Z2_CS)
     #error "Z2_CS_PIN is required for Z2_IS_TMC2130. Define Z2_CS_PIN in Configuration_adv.h."
+  #elif ENABLED(Z3_IS_TMC2130) && !PIN_EXISTS(Z3_CS)
+    #error "Z3_CS_PIN is required for Z3_IS_TMC2130. Define Z3_CS_PIN in Configuration_adv.h."
   #elif ENABLED(E0_IS_TMC2130) && !PIN_EXISTS(E0_CS)
     #error "E0_CS_PIN is required for E0_IS_TMC2130. Define E0_CS_PIN in Configuration_adv.h."
   #elif ENABLED(E1_IS_TMC2130) && !PIN_EXISTS(E1_CS)
@@ -1566,6 +1615,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
     || ENABLED( Y2_IS_TMC2208 ) \
     || ENABLED(  Z_IS_TMC2208 ) \
     || ENABLED( Z2_IS_TMC2208 ) \
+    || ENABLED( Z3_IS_TMC2208 ) \
     || ENABLED( E0_IS_TMC2208 ) \
     || ENABLED( E1_IS_TMC2208 ) \
     || ENABLED( E2_IS_TMC2208 ) \
@@ -1583,6 +1633,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
     || defined(Y2_HARDWARE_SERIAL) \
     || defined(Z_HARDWARE_SERIAL ) \
     || defined(Z2_HARDWARE_SERIAL) \
+    || defined(Z3_HARDWARE_SERIAL) \
     || defined(E0_HARDWARE_SERIAL) \
     || defined(E1_HARDWARE_SERIAL) \
     || defined(E2_HARDWARE_SERIAL) \
@@ -1595,7 +1646,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
   #error "Enable STEALTHCHOP to use HYBRID_THRESHOLD."
 #endif
 
-#if ENABLED(TMC_Z_CALIBRATION) && !Z_IS_TRINAMIC && !Z2_IS_TRINAMIC
+#if ENABLED(TMC_Z_CALIBRATION) && !Z_IS_TRINAMIC && !Z2_IS_TRINAMIC  && !Z3_IS_TRINAMIC
   #error "TMC_Z_CALIBRATION requires at least one TMC driver on Z axis"
 #endif
 
@@ -1609,6 +1660,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
       || ENABLED( Y2_IS_L6470 ) \
       || ENABLED(  Z_IS_L6470 ) \
       || ENABLED( Z2_IS_L6470 ) \
+      || ENABLED( Z3_IS_L6470 ) \
       || ENABLED( E0_IS_L6470 ) \
       || ENABLED( E1_IS_L6470 ) \
       || ENABLED( E2_IS_L6470 ) \
@@ -1662,6 +1714,13 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
   + ENABLED(Z2_IS_TMC2208) \
   + ENABLED(Z2_IS_L6470)
   #error "Please enable only one stepper driver for the Z2 axis."
+#endif
+#if 1 < 0 \
+  + ENABLED(Z3_IS_TMC26X) \
+  + ENABLED(Z3_IS_TMC2130) \
+  + ENABLED(Z3_IS_TMC2208) \
+  + ENABLED(Z3_IS_L6470)
+  #error "Please enable only one stepper driver for the Z3 axis."
 #endif
 #if 1 < 0 \
   + ENABLED(E0_IS_TMC26X) \

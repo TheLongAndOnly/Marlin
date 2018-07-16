@@ -189,6 +189,10 @@ bool report_tmc_status = false;
         static uint8_t z2_otpw_cnt = 0;
         monitor_tmc_driver(stepperZ2, TMC_Z, z2_otpw_cnt);
       #endif
+      #if HAS_HW_COMMS(Z3)
+        static uint8_t z3_otpw_cnt = 0;
+        monitor_tmc_driver(stepperZ3, TMC_Z, z3_otpw_cnt);
+      #endif
       #if HAS_HW_COMMS(E0) || ENABLED(IS_TRAMS)
         static uint8_t e0_otpw_cnt = 0;
         monitor_tmc_driver(stepperE0, TMC_E0, e0_otpw_cnt);
@@ -219,10 +223,11 @@ bool report_tmc_status = false;
 void _tmc_say_axis(const TMC_AxisEnum axis) {
   static const char ext_X[]  PROGMEM = "X",  ext_Y[]  PROGMEM = "Y",  ext_Z[]  PROGMEM = "Z",
                     ext_X2[] PROGMEM = "X2", ext_Y2[] PROGMEM = "Y2", ext_Z2[] PROGMEM = "Z2",
+                    ext_Z3[] PROGMEM = "Z3",
                     ext_E0[] PROGMEM = "E0", ext_E1[] PROGMEM = "E1",
                     ext_E2[] PROGMEM = "E2", ext_E3[] PROGMEM = "E3",
                     ext_E4[] PROGMEM = "E4";
-  static const char* const tmc_axes[] PROGMEM = { ext_X, ext_Y, ext_Z, ext_X2, ext_Y2, ext_Z2, ext_E0, ext_E1, ext_E2, ext_E3, ext_E4 };
+  static const char* const tmc_axes[] PROGMEM = { ext_X, ext_Y, ext_Z, ext_X2, ext_Y2, ext_Z2, ext_Z3, ext_E0, ext_E1, ext_E2, ext_E3, ext_E4 };
   serialprintPGM((char*)pgm_read_ptr(&tmc_axes[axis]));
 }
 
@@ -440,6 +445,9 @@ void _tmc_say_sgt(const TMC_AxisEnum axis, const int8_t sgt) {
     #if Z2_IS_TRINAMIC
       tmc_status(stepperZ2, TMC_Z2, i, planner.axis_steps_per_mm[Z_AXIS]);
     #endif
+    #if Z3_IS_TRINAMIC
+      tmc_status(stepperZ3, TMC_Z3, i, planner.axis_steps_per_mm[Z_AXIS]);
+    #endif
 
     #if E0_IS_TRINAMIC
       tmc_status(stepperE0, TMC_E0, i, planner.axis_steps_per_mm[E_AXIS]);
@@ -496,6 +504,9 @@ void _tmc_say_sgt(const TMC_AxisEnum axis, const int8_t sgt) {
     #endif
     #if Z2_IS_TRINAMIC
       tmc_parse_drv_status(stepperZ2, TMC_Z2, i);
+    #endif
+    #if Z3_IS_TRINAMIC
+      tmc_parse_drv_status(stepperZ3, TMC_Z3, i);
     #endif
 
     #if E0_IS_TRINAMIC
@@ -611,6 +622,9 @@ void _tmc_say_sgt(const TMC_AxisEnum axis, const int8_t sgt) {
     #endif
     #if ENABLED(Z2_IS_TMC2130)
       SET_CS_PIN(Z2);
+    #endif
+    #if ENABLED(Z3_IS_TMC2130)
+      SET_CS_PIN(Z3);
     #endif
     #if ENABLED(E0_IS_TMC2130)
       SET_CS_PIN(E0);

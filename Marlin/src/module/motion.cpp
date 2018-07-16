@@ -77,7 +77,7 @@ bool relative_mode; // = false;
  *   Used by 'buffer_line_to_current_position' to do a move after changing it.
  *   Used by 'SYNC_PLAN_POSITION_KINEMATIC' to update 'planner.position'.
  */
-float current_position[XYZE] = { 0.0 };
+float current_position[XYZE] = { 0 };
 
 /**
  * Cartesian Destination
@@ -85,7 +85,7 @@ float current_position[XYZE] = { 0.0 };
  *   and expected by functions like 'prepare_move_to_destination'.
  *   Set with 'get_destination_from_command' or 'set_destination_from_current'.
  */
-float destination[XYZE] = { 0.0 };
+float destination[XYZE] = { 0 };
 
 
 // The active extruder (tool). Set with T<extruder> command.
@@ -100,7 +100,7 @@ uint8_t active_extruder; // = 0;
 // no other feedrate is specified. Overridden for special moves.
 // Set by the last G0 through G5 command's "F" parameter.
 // Functions that override this for custom moves *must always* restore it!
-float feedrate_mm_s = MMM_TO_MMS(1500.0);
+float feedrate_mm_s = MMM_TO_MMS(1500.0f);
 
 int16_t feedrate_percentage = 100;
 
@@ -509,7 +509,7 @@ float soft_endstop_min[XYZ] = { X_MIN_BED, Y_MIN_BED, Z_MIN_POS },
      * but may produce jagged lines. Try 0.5mm, 1.0mm, and 2.0mm
      * and compare the difference.
      */
-    #define SCARA_MIN_SEGMENT_LENGTH 0.5
+    #define SCARA_MIN_SEGMENT_LENGTH 0.5f
   #endif
 
   /**
@@ -566,14 +566,14 @@ float soft_endstop_min[XYZ] = { X_MIN_BED, Y_MIN_BED, Z_MIN_POS },
 
     // For SCARA enforce a minimum segment size
     #if IS_SCARA
-      NOMORE(segments, cartesian_mm * (1.0 / SCARA_MIN_SEGMENT_LENGTH));
+      NOMORE(segments, cartesian_mm * (1.0f / float(SCARA_MIN_SEGMENT_LENGTH)));
     #endif
 
     // At least one segment is required
     NOLESS(segments, 1U);
 
     // The approximate length of each segment
-    const float inv_segments = 1.0 / float(segments),
+    const float inv_segments = 1.0f / float(segments),
                 segment_distance[XYZE] = {
                   xdiff * inv_segments,
                   ydiff * inv_segments,
@@ -599,7 +599,7 @@ float soft_endstop_min[XYZ] = { X_MIN_BED, Y_MIN_BED, Z_MIN_POS },
       // SCARA needs to scale the feed rate from mm/s to degrees/s
       // i.e., Complete the angular vector in the given time.
       const float segment_length = cartesian_mm * inv_segments,
-                  inv_segment_length = 1.0 / segment_length, // 1/mm/segs
+                  inv_segment_length = 1.0f / segment_length, // 1/mm/segs
                   inverse_secs = inv_segment_length * _feedrate_mm_s;
 
       float oldA = planner.position_float[A_AXIS],
@@ -756,7 +756,7 @@ float soft_endstop_min[XYZ] = { X_MIN_BED, Y_MIN_BED, Z_MIN_POS },
       NOLESS(segments, 1U);
 
       // The approximate length of each segment
-      const float inv_segments = 1.0 / float(segments),
+      const float inv_segments = 1.0f / float(segments),
                   cartesian_segment_mm = cartesian_mm * inv_segments,
                   segment_distance[XYZE] = {
                     xdiff * inv_segments,
@@ -1315,7 +1315,7 @@ void homeaxis(const AxisEnum axis) {
   #endif
 
   // Set flags for X, Y, Z motor locking
-  #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+  #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
     switch (axis) {
       #if ENABLED(X_DUAL_ENDSTOPS)
         case X_AXIS:
@@ -1323,10 +1323,10 @@ void homeaxis(const AxisEnum axis) {
       #if ENABLED(Y_DUAL_ENDSTOPS)
         case Y_AXIS:
       #endif
-      #if ENABLED(Z_DUAL_ENDSTOPS)
+      #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
         case Z_AXIS:
       #endif
-      stepper.set_homing_dual_axis(true);
+      stepper.set_separate_multi_axis(true);
       default: break;
     }
   #endif
@@ -1335,7 +1335,7 @@ void homeaxis(const AxisEnum axis) {
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("Home 1 Fast:");
   #endif
-  do_homing_move(axis, 1.5 * max_length(axis) * axis_home_dir);
+  do_homing_move(axis, 1.5f * max_length(axis) * axis_home_dir);
 
   // When homing Z with probe respect probe clearance
   const float bump = axis_home_dir * (
@@ -1364,7 +1364,7 @@ void homeaxis(const AxisEnum axis) {
     do_homing_move(axis, 2 * bump, get_homing_bump_feedrate(axis));
   }
 
-  #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+  #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
     const bool pos_dir = axis_home_dir > 0;
     #if ENABLED(X_DUAL_ENDSTOPS)
       if (axis == X_AXIS) {
@@ -1393,7 +1393,53 @@ void homeaxis(const AxisEnum axis) {
         stepper.set_z2_lock(false);
       }
     #endif
-    stepper.set_homing_dual_axis(false);
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      if (axis == Z_AXIS) {
+        // we push the function pointers for the stepper lock function into an array
+        void (*lock[3]) (bool)= {&stepper.set_z_lock, &stepper.set_z2_lock, &stepper.set_z3_lock};
+        float adj[3] = {0, endstops.z_endstop_adj, endstops.z_endstop_adj2};
+
+        void (*tempLock) (bool);
+        float tempAdj;
+
+        // manual bubble sort by adjust value
+        if(adj[1] < adj[0]) {
+          tempLock = lock[0], tempAdj = adj[0];
+          lock[0] = lock[1], adj[0] = adj[1];
+          lock[1] = tempLock, adj[1] = tempAdj;
+        }
+        if(adj[2] < adj[1]) {
+          tempLock = lock[1], tempAdj = adj[1];
+          lock[1] = lock[2], adj[1] = adj[2];
+          lock[2] = tempLock, adj[2] = tempAdj;
+        }
+        if(adj[1] < adj[0]) {
+          tempLock = lock[0], tempAdj = adj[0];
+          lock[0] = lock[1], adj[0] = adj[1];
+          lock[1] = tempLock, adj[1] = tempAdj;
+        }
+
+        if(pos_dir) {
+          // normalize adj to smallest value and do the first move
+          (*lock[0])(true);
+          do_homing_move(axis, adj[1] - adj[0]);
+          // lock the second stepper for the final correction
+          (*lock[1])(true);
+          do_homing_move(axis, adj[2] - adj[1]);
+        }
+        else {
+          (*lock[2])(true);
+          do_homing_move(axis, adj[1] - adj[2]);
+          (*lock[1])(true);
+          do_homing_move(axis, adj[0] - adj[1]);
+        }
+
+        stepper.set_z_lock(false);
+        stepper.set_z2_lock(false);
+        stepper.set_z3_lock(false);
+      }
+    #endif
+
   #endif
 
   #if IS_SCARA
