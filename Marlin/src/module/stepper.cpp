@@ -107,12 +107,8 @@ Stepper stepper; // Singleton
 
 // public:
 
-#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
-  bool Stepper::homing_dual_axis = false;
-#endif
-
-#if ENABLED(Z_TRIPLE_ENDSTOPS)
-  bool Stepper::homing_triple_axis = false;
+#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+  bool Stepper::separate_multi_axis = false;
 #endif
 
 #if HAS_MOTOR_CURRENT_PWM
@@ -138,11 +134,11 @@ bool Stepper::abort_current_block;
 #if ENABLED(Y_DUAL_ENDSTOPS)
   bool Stepper::locked_Y_motor = false, Stepper::locked_Y2_motor = false;
 #endif
-#if ENABLED(Z_DUAL_ENDSTOPS)
+#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
   bool Stepper::locked_Z_motor = false, Stepper::locked_Z2_motor = false;
 #endif
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
-  bool Stepper::locked_Z_motor = false, Stepper::locked_Z2_motor = false, Stepper::locked_Z3_motor = false;
+  bool Stepper::locked_Z3_motor = false;
 #endif
 
 uint32_t Stepper::acceleration_time, Stepper::deceleration_time;
@@ -209,49 +205,37 @@ volatile int32_t Stepper::endstops_trigsteps[XYZ];
 volatile int32_t Stepper::count_position[NUM_AXIS] = { 0 };
 int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
 
-#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
-  #define DUAL_ENDSTOP_APPLY_STEP(A,V)                                                                                        \
-    if (homing_dual_axis) {                                                                                                   \
+#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+  #define MULTI_ENDSTOP_APPLY_STEP(A,V)                                                                                       \
+    if (separate_multi_axis) {                                                                                                \
       if (A##_HOME_DIR < 0) {                                                                                                 \
         if (!(TEST(endstops.state(), A##_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
         if (!(TEST(endstops.state(), A##2_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
+        #if A==Z && ENABLED(Z_TRIPLE_ENDSTOPS)                                                                                \
+          if (!(TEST(endstops.state(), A##3_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
+        #endif                                                                                                                \
       }                                                                                                                       \
       else {                                                                                                                  \
         if (!(TEST(endstops.state(), A##_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
         if (!(TEST(endstops.state(), A##2_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
+        #if A==Z && ENABLED(Z_TRIPLE_ENDSTOPS)                                                                                \
+          if (!(TEST(endstops.state(), A##3_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
+        #endif                                                                                                                \
       }                                                                                                                       \
     }                                                                                                                         \
     else {                                                                                                                    \
       A##_STEP_WRITE(V);                                                                                                      \
       A##2_STEP_WRITE(V);                                                                                                     \
-    }
-#endif
-
-#if ENABLED(Z_TRIPLE_ENDSTOPS)
-  #define TRIPLE_ENDSTOP_APPLY_STEP(A,V)                                                                                        \
-    if (homing_triple_axis) {                                                                                                   \
-      if (A##_HOME_DIR < 0) {                                                                                                 \
-        if (!(TEST(endstops.state(), A##_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
-        if (!(TEST(endstops.state(), A##2_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
-        if (!(TEST(endstops.state(), A##3_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
-      }                                                                                                                       \
-      else {                                                                                                                  \
-        if (!(TEST(endstops.state(), A##_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
-        if (!(TEST(endstops.state(), A##2_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
-        if (!(TEST(endstops.state(), A##3_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
-      }                                                                                                                       \
-    }                                                                                                                         \
-    else {                                                                                                                    \
-      A##_STEP_WRITE(V);                                                                                                      \
-      A##2_STEP_WRITE(V);                                                                                                     \
-      A##3_STEP_WRITE(V);                                                                                                     \
+      #if A==Z && ENABLED(Z_TRIPLE_ENDSTOPS)                                                                                  \
+        A##3_STEP_WRITE(V);                                                                                                   \
+      #endif
     }
 #endif
 
 #if ENABLED(X_DUAL_STEPPER_DRIVERS)
   #define X_APPLY_DIR(v,Q) do{ X_DIR_WRITE(v); X2_DIR_WRITE((v) != INVERT_X2_VS_X_DIR); }while(0)
   #if ENABLED(X_DUAL_ENDSTOPS)
-    #define X_APPLY_STEP(v,Q) DUAL_ENDSTOP_APPLY_STEP(X,v)
+    #define X_APPLY_STEP(v,Q) MULTI_ENDSTOP_APPLY_STEP(X,v)
   #else
     #define X_APPLY_STEP(v,Q) do{ X_STEP_WRITE(v); X2_STEP_WRITE(v); }while(0)
   #endif
@@ -280,7 +264,7 @@ int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
 #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
   #define Y_APPLY_DIR(v,Q) do{ Y_DIR_WRITE(v); Y2_DIR_WRITE((v) != INVERT_Y2_VS_Y_DIR); }while(0)
   #if ENABLED(Y_DUAL_ENDSTOPS)
-    #define Y_APPLY_STEP(v,Q) DUAL_ENDSTOP_APPLY_STEP(Y,v)
+    #define Y_APPLY_STEP(v,Q) MULTI_ENDSTOP_APPLY_STEP(Y,v)
   #else
     #define Y_APPLY_STEP(v,Q) do{ Y_STEP_WRITE(v); Y2_STEP_WRITE(v); }while(0)
   #endif
@@ -292,14 +276,14 @@ int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
 #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
   #define Z_APPLY_DIR(v,Q) do{ Z_DIR_WRITE(v); Z2_DIR_WRITE(v); Z3_DIR_WRITE(v); }while(0)
   #if ENABLED(Z_TRIPLE_ENDSTOPS)
-    #define Z_APPLY_STEP(v,Q) TRIPLE_ENDSTOP_APPLY_STEP(Z,v)
+    #define Z_APPLY_STEP(v,Q) MULTI_ENDSTOP_APPLY_STEP(Z,v)
   #else
     #define Z_APPLY_STEP(v,Q) do{ Z_STEP_WRITE(v); Z2_STEP_WRITE(v); Z3_STEP_WRITE(v); }while(0)
   #endif
 #elif ENABLED(Z_DUAL_STEPPER_DRIVERS)
   #define Z_APPLY_DIR(v,Q) do{ Z_DIR_WRITE(v); Z2_DIR_WRITE(v); }while(0)
   #if ENABLED(Z_DUAL_ENDSTOPS)
-    #define Z_APPLY_STEP(v,Q) DUAL_ENDSTOP_APPLY_STEP(Z,v)
+    #define Z_APPLY_STEP(v,Q) MULTI_ENDSTOP_APPLY_STEP(Z,v)
   #else
     #define Z_APPLY_STEP(v,Q) do{ Z_STEP_WRITE(v); Z2_STEP_WRITE(v); }while(0)
   #endif
