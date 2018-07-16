@@ -164,7 +164,7 @@ void GcodeSuite::G34() {
     // correct stepper offsets and re-iterate
     for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
       // ensure 
-      stepper.set_homing_dual_axis(true);
+      stepper.set_separate_multi_axis(true);
   
       // we enable each stepper separately
       stepper.set_z_lock(true);
@@ -189,7 +189,7 @@ void GcodeSuite::G34() {
     stepper.set_z_lock(false);
     stepper.set_z2_lock(false);
 
-    stepper.set_homing_dual_axis(false);
+    stepper.set_separate_multi_axis(false);
 
     // after this operation we have lost the z homing position
     set_axis_is_not_at_home(Z_AXIS);
