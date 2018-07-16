@@ -234,12 +234,8 @@ class Stepper {
 
   public:
 
-    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
-      static bool homing_dual_axis;
-    #endif
-
-    #if ENABLED(Z_TRIPLE_ENDSTOPS)
-      static bool homing_triple_axis;
+    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+      static bool separate_multi_axis;
     #endif
 
     #if HAS_MOTOR_CURRENT_PWM
@@ -417,11 +413,8 @@ class Stepper {
       static void microstep_readings();
     #endif
 
-    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
-      FORCE_INLINE static void set_homing_dual_axis(const bool state) { homing_dual_axis = state; }
-    #endif
-    #if ENABLED(Z_TRIPLE_ENDSTOPS)
-      FORCE_INLINE static void set_homing_triple_axis(const bool state) { homing_triple_axis = state; }
+    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+      FORCE_INLINE static void set_separate_multi_axis(const bool state) { separate_multi_axis = state; }
     #endif
     #if ENABLED(X_DUAL_ENDSTOPS)
       FORCE_INLINE static void set_x_lock(const bool state) { locked_X_motor = state; }

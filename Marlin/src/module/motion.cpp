@@ -1326,7 +1326,7 @@ void homeaxis(const AxisEnum axis) {
       #if ENABLED(Z_DUAL_ENDSTOPS)
         case Z_AXIS:
       #endif
-      stepper.set_homing_dual_axis(true);
+      stepper.set_separate_multi_axis(true);
       default: break;
     }
   #endif
@@ -1336,7 +1336,7 @@ void homeaxis(const AxisEnum axis) {
       #if ENABLED(Z_TRIPLE_ENDSTOPS)
         case Z_AXIS:
       #endif
-      stepper.set_homing_triple_axis(true);
+      stepper.set_separate_multi_axis(true);
       default: break;
     }
   #endif
@@ -1383,7 +1383,7 @@ void homeaxis(const AxisEnum axis) {
         do_homing_move(axis, pos_dir ? -adj : adj);
         stepper.set_x_lock(false);
         stepper.set_x2_lock(false);
-        stepper.set_homing_dual_axis(false);
+        stepper.set_separate_multi_axis(false);
       }
     #endif
     #if ENABLED(Y_DUAL_ENDSTOPS)
@@ -1393,7 +1393,7 @@ void homeaxis(const AxisEnum axis) {
         do_homing_move(axis, pos_dir ? -adj : adj);
         stepper.set_y_lock(false);
         stepper.set_y2_lock(false);
-        stepper.set_homing_dual_axis(false);
+        stepper.set_separate_multi_axis(false);
       }
     #endif
     #if ENABLED(Z_DUAL_ENDSTOPS)
@@ -1403,7 +1403,7 @@ void homeaxis(const AxisEnum axis) {
         do_homing_move(axis, pos_dir ? -adj : adj);
         stepper.set_z_lock(false);
         stepper.set_z2_lock(false);
-        stepper.set_homing_dual_axis(false);
+        stepper.set_separate_multi_axis(false);
       }
     #endif
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
@@ -1450,7 +1450,7 @@ void homeaxis(const AxisEnum axis) {
         stepper.set_z_lock(false);
         stepper.set_z2_lock(false);
         stepper.set_z3_lock(false);
-        stepper.set_homing_triple_axis(false);
+        stepper.set_separate_multi_axis(false);
       }
     #endif
 
