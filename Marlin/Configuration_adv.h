@@ -403,7 +403,7 @@
 // @section homing
 
 // allow automatic alignment of z steppers for dual z stepper configuration and movable probe
-//#define Z_STEPPER_AUTO_ALIGN
+#define Z_STEPPER_AUTO_ALIGN
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
   // define probe x-position for Z1, Z2, Z3
   #define Z_STEPPER_ALIGN_XPOS {10, 150, 290}
