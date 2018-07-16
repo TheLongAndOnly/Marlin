@@ -239,7 +239,7 @@ void Endstops::init() {
 
 } // Endstops::init
 
-// Called from ISR: Poll endstop state if required
+// Called at ~1KHz from Temperature ISR: Poll endstop state if required
 void Endstops::poll() {
 
   #if ENABLED(PINS_DEBUGGING)
@@ -281,8 +281,8 @@ void Endstops::not_homing() {
 
 // If the last move failed to trigger an endstop, call kill
 void Endstops::validate_homing_move() {
-  if (!trigger_state()) kill(PSTR(MSG_ERR_HOMING_FAILED));
-  hit_on_purpose();
+  if (trigger_state()) hit_on_purpose();
+  else kill(PSTR(MSG_ERR_HOMING_FAILED));
 }
 
 // Enable / disable endstop z-probe checking
@@ -306,8 +306,9 @@ void Endstops::validate_homing_move() {
   }
 #endif
 
-void Endstops::report_state() {
-  if (hit_state) {
+void Endstops::event_handler() {
+  static uint8_t prev_hit_state; // = 0
+  if (hit_state && hit_state != prev_hit_state) {
     #if ENABLED(ULTRA_LCD)
       char chrX = ' ', chrY = ' ', chrZ = ' ', chrP = ' ';
       #define _SET_STOP_CHAR(A,C) (chr## A = C)
@@ -343,8 +344,6 @@ void Endstops::report_state() {
       lcd_status_printf_P(0, PSTR(MSG_LCD_ENDSTOPS " %c %c %c %c"), chrX, chrY, chrZ, chrP);
     #endif
 
-    hit_on_purpose();
-
     #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED) && ENABLED(SDSUPPORT)
       if (planner.abort_on_endstop_hit) {
         card.sdprinting = false;
@@ -354,6 +353,7 @@ void Endstops::report_state() {
       }
     #endif
   }
+  prev_hit_state = hit_state;
 } // Endstops::report_state
 
 void Endstops::M119() {
@@ -421,7 +421,7 @@ void Endstops::M119() {
 #define _ENDSTOP_PIN(AXIS, MINMAX) AXIS ##_## MINMAX ##_PIN
 #define _ENDSTOP_INVERTING(AXIS, MINMAX) AXIS ##_## MINMAX ##_ENDSTOP_INVERTING
 
-// Check endstops - Could be called from ISR!
+// Check endstops - Could be called from Temperature ISR!
 void Endstops::update() {
 
   #if DISABLED(ENDSTOP_NOISE_FILTER)
@@ -610,7 +610,7 @@ void Endstops::update() {
     if (dual_hit) { \
       _ENDSTOP_HIT(AXIS1, MINMAX); \
       /* if not performing home or if both endstops were trigged during homing... */ \
-      if (!stepper.separate_multi_axis || dual_hit == 0x3) \
+      if (!stepper.separate_multi_axis || dual_hit == 0b11) \
         planner.endstop_triggered(_AXIS(AXIS1)); \
     } \
   }while(0)
@@ -620,7 +620,7 @@ void Endstops::update() {
     if (triple_hit) { \
       _ENDSTOP_HIT(AXIS1, MINMAX); \
       /* if not performing home or if both endstops were trigged during homing... */ \
-      if (!stepper.separate_multi_axis || triple_hit == 0x7) \
+      if (!stepper.separate_multi_axis || triple_hit == 0b111) \
         planner.endstop_triggered(_AXIS(AXIS1)); \
     } \
   }while(0)
