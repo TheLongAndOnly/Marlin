@@ -48,6 +48,7 @@
 #define MSG_AUTO_HOME_X                     _UxGT("Home X")
 #define MSG_AUTO_HOME_Y                     _UxGT("Home Y")
 #define MSG_AUTO_HOME_Z                     _UxGT("Home Z")
+#define MSG_AUTO_Z_ALIGN                    _UxGT("Auto Z-Align")
 #define MSG_LEVEL_BED_HOMING                _UxGT("Home XYZ")
 #define MSG_LEVEL_BED_WAITING               _UxGT("Klick für Start")
 #define MSG_LEVEL_BED_NEXT_POINT            _UxGT("Nächste Koordinate")
