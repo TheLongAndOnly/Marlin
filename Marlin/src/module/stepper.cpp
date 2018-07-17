@@ -205,30 +205,42 @@ volatile int32_t Stepper::endstops_trigsteps[XYZ];
 volatile int32_t Stepper::count_position[NUM_AXIS] = { 0 };
 int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
 
-#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || (ENABLED(Z_STEPPER_AUTO_ALIGN) && ENABLED(Z_DUAL_STEPPER_DRIVERS))
   #define MULTI_ENDSTOP_APPLY_STEP(A,V)                                                                                       \
     if (separate_multi_axis) {                                                                                                \
       if (A##_HOME_DIR < 0) {                                                                                                 \
         if (!(TEST(endstops.state(), A##_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
-        if (!(TEST(endstops.state(), A##2_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
-        #if A==Z && ENABLED(Z_TRIPLE_ENDSTOPS)                                                                                \
-          if (!(TEST(endstops.state(), A##3_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
-        #endif                                                                                                                \
+        if (!(TEST(endstops.state(), A##2_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \                                                                                                            \
       }                                                                                                                       \
       else {                                                                                                                  \
         if (!(TEST(endstops.state(), A##_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
         if (!(TEST(endstops.state(), A##2_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
-        #if A==Z && ENABLED(Z_TRIPLE_ENDSTOPS)                                                                                \
-          if (!(TEST(endstops.state(), A##3_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
-        #endif                                                                                                                \
       }                                                                                                                       \
     }                                                                                                                         \
     else {                                                                                                                    \
       A##_STEP_WRITE(V);                                                                                                      \
       A##2_STEP_WRITE(V);                                                                                                     \
-      #if A==Z && ENABLED(Z_TRIPLE_ENDSTOPS)                                                                                  \
-        A##3_STEP_WRITE(V);                                                                                                   \
-      #endif
+    }
+#endif
+
+#if ENABLED(Z_TRIPLE_ENDSTOPS) || (ENABLED(Z_STEPPER_AUTO_ALIGN) && ENABLED(Z_TRIPLE_STEPPER_DRIVERS))
+  #define MULTI_ENDSTOP_APPLY_STEP(A,V)                                                                                       \
+    if (separate_multi_axis) {                                                                                                \
+      if (A##_HOME_DIR < 0) {                                                                                                 \
+        if (!(TEST(endstops.state(), A##_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
+        if (!(TEST(endstops.state(), A##2_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
+        if (!(TEST(endstops.state(), A##3_MIN) && count_direction[_AXIS(A)] < 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
+      }                                                                                                                       \
+      else {                                                                                                                  \
+        if (!(TEST(endstops.state(), A##_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##_motor) A##_STEP_WRITE(V);    \
+        if (!(TEST(endstops.state(), A##2_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##2_motor) A##2_STEP_WRITE(V); \
+        if (!(TEST(endstops.state(), A##3_MAX) && count_direction[_AXIS(A)] > 0) && !locked_##A##3_motor) A##3_STEP_WRITE(V); \
+      }                                                                                                                       \
+    }                                                                                                                         \
+    else {                                                                                                                    \
+      A##_STEP_WRITE(V);                                                                                                      \
+      A##2_STEP_WRITE(V);                                                                                                     \
+      A##3_STEP_WRITE(V);                                                                                                     \
     }
 #endif
 
