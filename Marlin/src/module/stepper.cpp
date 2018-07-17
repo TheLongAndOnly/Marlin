@@ -205,7 +205,7 @@ volatile int32_t Stepper::endstops_trigsteps[XYZ];
 volatile int32_t Stepper::count_position[NUM_AXIS] = { 0 };
 int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
 
-#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || (ENABLED(Z_STEPPER_AUTO_ALIGN) && ENABLED(Z_DUAL_STEPPER_DRIVERS))
   #define MULTI_ENDSTOP_APPLY_STEP(A,V)                                                                                       \
     if (separate_multi_axis) {                                                                                                \
       if (A##_HOME_DIR < 0) {                                                                                                 \
@@ -223,7 +223,7 @@ int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
     }
 #endif
 
-#if ENABLED(Z_TRIPLE_ENDSTOPS)
+#if ENABLED(Z_TRIPLE_ENDSTOPS) || (ENABLED(Z_STEPPER_AUTO_ALIGN) && ENABLED(Z_TRIPLE_STEPPER_DRIVERS))
   #define MULTI_ENDSTOP_APPLY_STEP(A,V)                                                                                       \
     if (separate_multi_axis) {                                                                                                \
       if (A##_HOME_DIR < 0) {                                                                                                 \
