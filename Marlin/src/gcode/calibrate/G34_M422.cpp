@@ -129,36 +129,44 @@ void GcodeSuite::G34() {
   // start calibration iterations
   float z_measured[Z_STEPPER_COUNT] = { 0.0f };
   for (uint8_t iteration = 0; iteration < iterations; ++iteration) {
-    // reset maximum value
-    float z_measured_max = 0.0f;
+
+    #if ENABLED(DEBUG_LEVELING_FEATURE)
+      if (DEBUGGING(LEVELING)) {
+        SERIAL_ECHOLNPGM("> probing all positions.");
+      }
+    #endif
+
+    // reset minimum value
+    float z_measured_min = 100000.0f;
     // for each iteration we move through all probe positions (one per Z-Stepper)
     uint8_t zstepper;
     for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
-
       float pos_x = z_auto_align_xpos[zstepper];
       float pos_y = z_auto_align_ypos[zstepper];
 
-      #if HOMING_Z_WITH_PROBE
-        pos_x -= X_PROBE_OFFSET_FROM_EXTRUDER;
-        pos_y -= Y_PROBE_OFFSET_FROM_EXTRUDER;
-      #endif
+      // remember the measured z height per stepper
+      z_measured[zstepper] = probe_pt(pos_x, pos_y, PROBE_PT_RAISE, false);
 
-      if (!position_is_reachable(pos_x, pos_y)) {
+      if (isnan(z_measured[zstepper])) {
         // we need to stop here
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) {
-            SERIAL_ECHOLNPGM("> cannot reach probe position.");
+            SERIAL_ECHOLNPGM("> probing failed.");
             SERIAL_ECHOLNPGM("<<< G34");
           }
         #endif
         return;        
       }
 
-      // remember the measured z height per stepper
-      z_measured[zstepper] = probe_pt(pos_x, pos_y, PROBE_PT_RAISE);
+      #if ENABLED(DEBUG_LEVELING_FEATURE)
+        if (DEBUGGING(LEVELING)) {
+          SERIAL_ECHOPAIR("> measure Z position for ", zstepper+1);
+          SERIAL_ECHOLNPAIR(" is ", z_measured[zstepper]);
+        }
+      #endif
 
       // remember the maximum position to calculate the correction
-      z_measured_max = MAX(z_measured_max, z_measured[zstepper]);
+      z_measured_min = MIN(z_measured_min, z_measured[zstepper]);
     }
 
     // correct stepper offsets and re-iterate
@@ -174,7 +182,14 @@ void GcodeSuite::G34() {
       #endif
 
       // calculate current stepper move
-      float z_align_move = z_measured_max - z_measured[zstepper];
+      float z_align_move = z_measured[zstepper]- z_measured_min;
+
+      #if ENABLED(DEBUG_LEVELING_FEATURE)
+        if (DEBUGGING(LEVELING)) {
+          SERIAL_ECHOPAIR("> correcting Z for stepper ", zstepper+1);
+          SERIAL_ECHOLNPAIR(" by ", z_align_move);
+        }
+      #endif
 
       switch(zstepper) {
         case 0:
@@ -184,14 +199,14 @@ void GcodeSuite::G34() {
           stepper.set_z2_lock(false);
           break;
       #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-        case 3:
+        case 2:
           stepper.set_z3_lock(false);
           break;
       #endif
       }
 
       // we will be losing home position and need to re-home
-      do_blocking_move_to_z(z_align_move);
+      do_blocking_move_to_z(z_align_move+current_position[Z_AXIS]);
     }
 
     stepper.set_z_lock(false);
@@ -206,7 +221,7 @@ void GcodeSuite::G34() {
     set_axis_is_not_at_home(Z_AXIS);
     
     // rehome
-    gcode.home_all_axes();
+    gcode.G28(false);
   }
 
   // Restore the active tool after homing
