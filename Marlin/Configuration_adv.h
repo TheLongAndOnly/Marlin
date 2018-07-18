@@ -406,8 +406,8 @@
 #define Z_STEPPER_AUTO_ALIGN
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
   // define probe x-position for Z1, Z2, Z3
-  #define Z_STEPPER_ALIGN_XPOS {10, 150, 290}
-  #define Z_STEPPER_ALIGN_YPOS {290, 10, 290}
+  #define Z_STEPPER_ALIGN_XPOS {150, 75,  225}
+  #define Z_STEPPER_ALIGN_YPOS { 75, 225, 225}
   // set number of iterations to align
   #define Z_STEPPER_ALIGN_ITERATIONS 3
   // enable to restore leveling setup after operation
