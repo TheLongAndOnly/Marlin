@@ -126,10 +126,13 @@ void GcodeSuite::G34() {
     extruder_duplication_enabled = false;
   #endif
 
+  const float z_align_amp = Z_STEPPER_ALIGN_AMP;
+
   // start calibration iterations
   float z_measured[Z_STEPPER_COUNT] = { 0.0f };
+  // remember correction from iteration to iteration to determine errors
+  float last_z_align_move[Z_STEPPER_COUNT] = { 10000.0f };
   for (uint8_t iteration = 0; iteration < iterations; ++iteration) {
-
     #if ENABLED(DEBUG_LEVELING_FEATURE)
       if (DEBUGGING(LEVELING)) {
         SERIAL_ECHOLNPGM("> probing all positions.");
@@ -169,6 +172,11 @@ void GcodeSuite::G34() {
       z_measured_min = MIN(z_measured_min, z_measured[zstepper]);
     }
 
+    // remember the current z position to return to
+    float z_original_position = current_position[Z_AXIS];
+
+    // we can stop iterations early, if all corrections are smaller than our accuracy
+    bool breakEarly = true;
     // correct stepper offsets and re-iterate
     for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
       // ensure 
@@ -182,7 +190,24 @@ void GcodeSuite::G34() {
       #endif
 
       // calculate current stepper move
-      float z_align_move = z_measured[zstepper]- z_measured_min;
+      float z_align_move = z_align_amp * (z_measured[zstepper] - z_measured_min);
+
+      // check, if we loose accuracy compared to last move
+      if (last_z_align_move[zstepper] + 1.0f < ABS(z_align_move)) {
+        // we need to stop here
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOLNPGM("> detected decreasing accuracy.");
+            SERIAL_ECHOLNPGM("<<< G34");
+          }
+        #endif
+        return;
+      }
+      else {
+        last_z_align_move[zstepper] = ABS(z_align_move);
+      }
+
+      breakEarly &= (ABS(z_align_move) <= Z_STEPPER_ALIGN_ACC);
 
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) {
@@ -206,8 +231,16 @@ void GcodeSuite::G34() {
       }
 
       // we will be losing home position and need to re-home
-      do_blocking_move_to_z(z_align_move+current_position[Z_AXIS]);
+      do_blocking_move_to_z(z_align_move + current_position[Z_AXIS]);
     }
+    stepper.set_z_lock(true);
+    stepper.set_z2_lock(true);
+    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+      stepper.set_z3_lock(true);
+    #endif
+
+    // reset z position to previous position
+    do_blocking_move_to_z(z_original_position);
 
     stepper.set_z_lock(false);
     stepper.set_z2_lock(false);
@@ -217,11 +250,14 @@ void GcodeSuite::G34() {
 
     stepper.set_separate_multi_axis(false);
 
-    // after this operation we have lost the z homing position
-    set_axis_is_not_at_home(Z_AXIS);
-    
-    // rehome
-    gcode.G28(false);
+    if (breakEarly) {
+      #if ENABLED(DEBUG_LEVELING_FEATURE)
+        if (DEBUGGING(LEVELING)) {
+          SERIAL_ECHOLNPGM("> achieved target accuracy.");
+       }
+      #endif
+      break;
+    }
   }
 
   // Restore the active tool after homing
@@ -239,6 +275,12 @@ void GcodeSuite::G34() {
       set_bed_leveling_enabled(leveling_was_active);
     #endif
   #endif
+
+  // after this operation we have lost the z homing position
+  set_axis_is_not_at_home(Z_AXIS);
+  
+  // rehome
+  gcode.G28(false);
 
   // we are finished
   #if ENABLED(DEBUG_LEVELING_FEATURE)
