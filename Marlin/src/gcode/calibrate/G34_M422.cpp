@@ -53,7 +53,7 @@ float z_auto_align_ypos[] = Z_STEPPER_ALIGN_YPOS;
 /**
  * G34 - Z-Stepper automatic alignment
  *
- * Parameters:
+ * Parameters: I<iterations> T<accuracy> A<amplification>
  *
  */
 void GcodeSuite::G34() {
@@ -86,14 +86,36 @@ void GcodeSuite::G34() {
 
   uint8_t z_auto_align_iterations = Z_STEPPER_ALIGN_ITERATIONS;
 
-  const int8_t iterations = parser.intval('I', z_auto_align_iterations);
-  if (0 == iterations || iterations > 30) {
+  const int8_t temp_iterations = parser.intval('I', z_auto_align_iterations);
+  if (0 == temp_iterations || temp_iterations > 30) {
     SERIAL_ECHOLNPGM("?Z-Stepper (I)teration definition out of bounds (1, 30).");
     SERIAL_ECHOLNPGM("<<< G34");
     return;
   }
   else {
-    z_auto_align_iterations = iterations;
+    z_auto_align_iterations = temp_iterations;
+  }
+
+  float z_auto_align_accuracy = Z_STEPPER_ALIGN_ACC;
+  const float temp_accuracy = parser.floatval('T', z_auto_align_accuracy);
+  if (0.01f > temp_accuracy || temp_accuracy > 1.0f) {
+    SERIAL_ECHOLNPGM("?Z-Stepper (T)arget accuracy definition is out of bounds (0.01, 1.0).");
+    SERIAL_ECHOLNPGM("<<< G34");
+    return;
+  }
+  else {
+    z_auto_align_accuracy = temp_accuracy;
+  }
+
+  float z_auto_align_amplification = Z_STEPPER_ALIGN_ACC;
+  const float temp_amplification = parser.floatval('A', z_auto_align_amplification);
+  if (0.5f > temp_amplification || temp_amplification > 2.0f) {
+    SERIAL_ECHOLNPGM("?Z-Stepper (A)mplification definition is out of bounds (0.5, 2.0).");
+    SERIAL_ECHOLNPGM("<<< G34");
+    return;
+  }
+  else {
+    z_auto_align_amplification = temp_amplification;
   }
 
   // Wait for planner moves to finish!
@@ -125,8 +147,6 @@ void GcodeSuite::G34() {
   #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
     extruder_duplication_enabled = false;
   #endif
-
-  const float z_align_amp = Z_STEPPER_ALIGN_AMP;
 
   // start calibration iterations
   float z_measured[Z_STEPPER_COUNT] = { 0.0f };
@@ -190,7 +210,7 @@ void GcodeSuite::G34() {
       #endif
 
       // calculate current stepper move
-      float z_align_move = z_align_amp * (z_measured[zstepper] - z_measured_min);
+      float z_align_move = z_auto_align_amplification * (z_measured[zstepper] - z_measured_min);
 
       // check, if we loose accuracy compared to last move
       if (last_z_align_move[zstepper] + 1.0f < ABS(z_align_move)) {
@@ -207,7 +227,7 @@ void GcodeSuite::G34() {
         last_z_align_move[zstepper] = ABS(z_align_move);
       }
 
-      breakEarly &= (ABS(z_align_move) <= Z_STEPPER_ALIGN_ACC);
+      breakEarly &= (ABS(z_align_move) <= z_auto_align_accuracy);
 
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) {
