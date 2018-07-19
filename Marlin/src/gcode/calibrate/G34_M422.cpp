@@ -210,7 +210,7 @@ void GcodeSuite::G34() {
       #endif
 
       // calculate current stepper move
-      float z_align_move = z_auto_align_amplification * (z_measured[zstepper] - z_measured_min);
+      float z_align_move = z_measured[zstepper] - z_measured_min;
 
       // check, if we loose accuracy compared to last move
       if (last_z_align_move[zstepper] + 1.0f < ABS(z_align_move)) {
@@ -227,6 +227,7 @@ void GcodeSuite::G34() {
         last_z_align_move[zstepper] = ABS(z_align_move);
       }
 
+      // stop early, if all measured points achieve accuracy targets
       breakEarly &= (ABS(z_align_move) <= z_auto_align_accuracy);
 
       #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -251,7 +252,7 @@ void GcodeSuite::G34() {
       }
 
       // we will be losing home position and need to re-home
-      do_blocking_move_to_z(z_align_move + current_position[Z_AXIS]);
+      do_blocking_move_to_z(z_auto_align_amplification * z_align_move + current_position[Z_AXIS]);
     }
     stepper.set_z_lock(true);
     stepper.set_z2_lock(true);
