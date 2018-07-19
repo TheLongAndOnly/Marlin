@@ -309,18 +309,15 @@ void GcodeSuite::M422() {
     SERIAL_PROTOCOLLNPGM("?(X)-Position is implausible out of limits.");
     return;
   }
-  else {
-    z_auto_align_xpos[z_stepper-1] = x_pos;
-  }
 
   const float y_pos = parser.floatval('Y', z_auto_align_ypos[z_stepper-1]);
   if (!WITHIN(y_pos, Y_MIN_POS, Y_MAX_POS)) {
     SERIAL_PROTOCOLLNPGM("?(Y)-Position is implausible out of limits.");
     return;
   }
-  else {
-    z_auto_align_ypos[z_stepper-1] = y_pos;
-  }
+
+  z_auto_align_xpos[z_stepper-1] = x_pos;
+  z_auto_align_ypos[z_stepper-1] = y_pos;
 }
 
 #endif // Z_STEPPER_AUTO_ALIGN
