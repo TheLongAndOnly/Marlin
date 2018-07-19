@@ -152,7 +152,7 @@ void GcodeSuite::G34() {
   float z_measured[Z_STEPPER_COUNT] = { 0.0f };
   // remember correction from iteration to iteration to determine errors
   float last_z_align_move[Z_STEPPER_COUNT] = { 10000.0f };
-  for (uint8_t iteration = 0; iteration < iterations; ++iteration) {
+  for (uint8_t iteration = 0; iteration < z_auto_align_iterations; ++iteration) {
     #if ENABLED(DEBUG_LEVELING_FEATURE)
       if (DEBUGGING(LEVELING)) {
         SERIAL_ECHOLNPGM("> probing all positions.");
