@@ -107,7 +107,7 @@ void GcodeSuite::G34() {
     z_auto_align_accuracy = temp_accuracy;
   }
 
-  float z_auto_align_amplification = Z_STEPPER_ALIGN_ACC;
+  float z_auto_align_amplification = Z_STEPPER_ALIGN_AMP;
   const float temp_amplification = parser.floatval('A', z_auto_align_amplification);
   if (0.5f > temp_amplification || temp_amplification > 2.0f) {
     SERIAL_ECHOLNPGM("?Z-Stepper (A)mplification definition is out of bounds (0.5, 2.0).");
