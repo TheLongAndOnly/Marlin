@@ -85,6 +85,9 @@
 #ifndef MSG_AUTO_HOME_Z
   #define MSG_AUTO_HOME_Z                     _UxGT("Home Z")
 #endif
+#ifndef MSG_AUTO_Z_ALIGN
+  #define MSG_AUTO_Z_ALIGN                    _UxGT("Auto Z-Align")
+#endif
 #ifndef MSG_LEVEL_BED_HOMING
   #define MSG_LEVEL_BED_HOMING                _UxGT("Homing XYZ")
 #endif
