@@ -25,10 +25,4 @@ restore_configs
 opt_set MOTHERBOARD BOARD_RADDS
 opt_enable_adv Z_TRIPLE_STEPPER_DRIVERS Z_STEPPER_AUTO_ALIGN
 opt_enable FIX_MOUNTED_PROBE
-pins_set RAMPS X_MAX_PIN -1
-pins_set RAMPS Y_MAX_PIN -1
-opt_add_adv Z2_MAX_PIN 2
-opt_add_adv Z3_MAX_PIN 3
-opt_enable USE_XMAX_PLUG
-opt_enable USE_YMAX_PLUG
 exec_test $1 $2 "RADDS Z_AUTO_ALIGN"
