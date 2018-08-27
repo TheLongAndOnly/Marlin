@@ -1353,7 +1353,7 @@ void MarlinSettings::postprocess() {
           #if AXIS_IS_TMC(Z2)
             SET_CURR(Z2);
           #endif
-          #if ZAXIS_IS_TMC(Z3)
+          #if AXIS_IS_TMC(Z3)
             SET_CURR(Z3);
           #endif
           #if AXIS_IS_TMC(E0)
@@ -1457,7 +1457,7 @@ void MarlinSettings::postprocess() {
             #if AXIS_HAS_STALLGUARD(Z2)
               stepperZ2.sgt(tmc_sgt[2]);
             #endif
-            #if ENABLED(Z3_IS_TMC2130)
+            #if AXIS_HAS_STALLGUARD(Z3)
               stepperZ3.sgt(tmc_sgt[2]);
             #endif
           #endif
@@ -2538,9 +2538,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       #endif
       #if AXIS_IS_TMC(Z3)
         say_M906(PORTVAR_SOLO);
-        SERIAL_ECHOPGM_P(port, " I2");
-        SERIAL_ECHOPAIR_P(port, " Z", stepperZ3.getCurrent());
-        SERIAL_EOL_P(port);
+        SERIAL_ECHOLNPAIR_P(port, " I2 Z", stepperZ3.getCurrent());
       #endif
       #if AXIS_IS_TMC(E0)
         say_M906(PORTVAR_SOLO);
@@ -2607,8 +2605,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         #if AXIS_IS_TMC(Z3)
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOPGM_P(port, " I2");
-          SERIAL_ECHOPAIR_P(port, " Z", TMC_GET_PWMTHRS(Z, Z3));
-          SERIAL_EOL_P(port);
+          SERIAL_ECHOLNPAIR_P(port, " Z", TMC_GET_PWMTHRS(Z, Z3));
         #endif
         #if AXIS_IS_TMC(E0)
           say_M913(PORTVAR_SOLO);
@@ -2659,6 +2656,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         #define HAS_X2_SENSORLESS (defined(X_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(X2))
         #define HAS_Y2_SENSORLESS (defined(Y_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(Y2))
         #define HAS_Z2_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(Z2))
+        #define HAS_Z3_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(Z3))
         #if HAS_X2_SENSORLESS || HAS_Y2_SENSORLESS || HAS_Z2_SENSORLESS
           say_M914(PORTVAR_SOLO);
           SERIAL_ECHOPGM_P(port, " I1");
@@ -2674,12 +2672,10 @@ void MarlinSettings::reset(PORTARG_SOLO) {
           SERIAL_EOL_P(port);
         #endif
 
-        #define HAS_Z3_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && ENABLED(Z3_IS_TMC2130))
         #if HAS_Z3_SENSORLESS
           say_M914(PORTVAR_SOLO);
           SERIAL_ECHOPGM_P(port, " I2");
-          SERIAL_ECHOPAIR_P(port, " Z", stepperZ3.sgt());
-          SERIAL_EOL_P(port);
+          SERIAL_ECHOLNPAIR_P(port, " Z", stepperZ3.sgt());
         #endif
 
       #endif // SENSORLESS_HOMING

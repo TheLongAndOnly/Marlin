@@ -520,8 +520,8 @@ void Endstops::update() {
     #endif
   #endif
 
-  #if HAS_Z_MIN 
-    #if (ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)) && Z_HOME_DIR < 0
+  #if HAS_Z_MIN
+    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
       UPDATE_ENDSTOP_BIT(Z, MIN);
       #if HAS_Z2_MIN
         UPDATE_ENDSTOP_BIT(Z2, MIN);
@@ -549,7 +549,7 @@ void Endstops::update() {
 
   #if HAS_Z_MAX
     // Check both Z dual endstops
-    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS) && Z_HOME_DIR > 0
+    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
       UPDATE_ENDSTOP_BIT(Z, MAX);
       #if HAS_Z2_MAX
         UPDATE_ENDSTOP_BIT(Z2, MAX);
@@ -622,7 +622,7 @@ void Endstops::update() {
     if (triple_hit) { \
       _ENDSTOP_HIT(AXIS1, MINMAX); \
       /* if not performing home or if both endstops were trigged during homing... */ \
-      if (!stepper.separate_multi_axis || triple_hit == 0b111) \
+      if (!stepper.separate_multi_axis || triple_hit == 0x7) \
         planner.endstop_triggered(_AXIS(AXIS1)); \
     } \
   }while(0)
