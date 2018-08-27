@@ -126,7 +126,7 @@ typedef struct SettingsDataStruct {
 
   float home_offset[XYZ];                               // M206 XYZ
 
-  #if HOTENDS > 1
+  #if HAS_HOTEND_OFFSET
     float hotend_offset[XYZ][HOTENDS - 1];              // M218 XYZ
   #endif
 
@@ -436,7 +436,7 @@ void MarlinSettings::postprocess() {
     #endif
     EEPROM_WRITE(home_offset);
 
-    #if HOTENDS > 1
+    #if HAS_HOTEND_OFFSET
       // Skip hotend 0 which must be 0
       for (uint8_t e = 1; e < HOTENDS; e++)
         LOOP_XYZ(i) EEPROM_WRITE(hotend_offset[i][e]);
@@ -1057,7 +1057,7 @@ void MarlinSettings::postprocess() {
       // Hotend Offsets, if any
       //
 
-      #if HOTENDS > 1
+      #if HAS_HOTEND_OFFSET
         // Skip hotend 0 which must be 0
         for (uint8_t e = 1; e < HOTENDS; e++)
           LOOP_XYZ(i) EEPROM_READ(hotend_offset[i][e]);
@@ -1353,7 +1353,7 @@ void MarlinSettings::postprocess() {
           #if AXIS_IS_TMC(Z2)
             SET_CURR(Z2);
           #endif
-          #if ZAXIS_IS_TMC(Z3)
+          #if AXIS_IS_TMC(Z3)
             SET_CURR(Z3);
           #endif
           #if AXIS_IS_TMC(E0)
@@ -1457,7 +1457,7 @@ void MarlinSettings::postprocess() {
             #if AXIS_HAS_STALLGUARD(Z2)
               stepperZ2.sgt(tmc_sgt[2]);
             #endif
-            #if ENABLED(Z3_IS_TMC2130)
+            #if AXIS_HAS_STALLGUARD(Z3)
               stepperZ3.sgt(tmc_sgt[2]);
             #endif
           #endif
@@ -1782,16 +1782,8 @@ void MarlinSettings::reset(PORTARG_SOLO) {
     ZERO(home_offset);
   #endif
 
-  #if HOTENDS > 1
-    constexpr float tmp4[XYZ][HOTENDS] = {
-      HOTEND_OFFSET_X,
-      HOTEND_OFFSET_Y
-      #ifdef HOTEND_OFFSET_Z
-        , HOTEND_OFFSET_Z
-      #else
-        , { 0 }
-      #endif
-    };
+  #if HAS_HOTEND_OFFSET
+    constexpr float tmp4[XYZ][HOTENDS] = { HOTEND_OFFSET_X, HOTEND_OFFSET_Y, HOTEND_OFFSET_Z };
     static_assert(
       tmp4[X_AXIS][0] == 0 && tmp4[Y_AXIS][0] == 0 && tmp4[Z_AXIS][0] == 0,
       "Offsets for the first hotend must be 0.0."
@@ -2212,7 +2204,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       SERIAL_ECHOLNPAIR_P(port, " Z", LINEAR_UNIT(home_offset[Z_AXIS]));
     #endif
 
-    #if HOTENDS > 1
+    #if HAS_HOTEND_OFFSET
       if (!forReplay) {
         CONFIG_ECHO_START;
         SERIAL_ECHOLNPGM_P(port, "Hotend offsets:");
@@ -2222,9 +2214,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         SERIAL_ECHOPAIR_P(port, "  M218 T", (int)e);
         SERIAL_ECHOPAIR_P(port, " X", LINEAR_UNIT(hotend_offset[X_AXIS][e]));
         SERIAL_ECHOPAIR_P(port, " Y", LINEAR_UNIT(hotend_offset[Y_AXIS][e]));
-        #if HAS_HOTEND_OFFSET_Z
-          SERIAL_ECHOPAIR_P(port, " Z", LINEAR_UNIT(hotend_offset[Z_AXIS][e]));
-        #endif
+        SERIAL_ECHOPAIR_P(port, " Z", LINEAR_UNIT(hotend_offset[Z_AXIS][e]));
         SERIAL_EOL_P(port);
       }
     #endif
@@ -2538,9 +2528,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       #endif
       #if AXIS_IS_TMC(Z3)
         say_M906(PORTVAR_SOLO);
-        SERIAL_ECHOPGM_P(port, " I2");
-        SERIAL_ECHOPAIR_P(port, " Z", stepperZ3.getCurrent());
-        SERIAL_EOL_P(port);
+        SERIAL_ECHOLNPAIR_P(port, " I2 Z", stepperZ3.getCurrent());
       #endif
       #if AXIS_IS_TMC(E0)
         say_M906(PORTVAR_SOLO);
@@ -2607,8 +2595,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         #if AXIS_IS_TMC(Z3)
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOPGM_P(port, " I2");
-          SERIAL_ECHOPAIR_P(port, " Z", TMC_GET_PWMTHRS(Z, Z3));
-          SERIAL_EOL_P(port);
+          SERIAL_ECHOLNPAIR_P(port, " Z", TMC_GET_PWMTHRS(Z, Z3));
         #endif
         #if AXIS_IS_TMC(E0)
           say_M913(PORTVAR_SOLO);
@@ -2659,6 +2646,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         #define HAS_X2_SENSORLESS (defined(X_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(X2))
         #define HAS_Y2_SENSORLESS (defined(Y_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(Y2))
         #define HAS_Z2_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(Z2))
+        #define HAS_Z3_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && AXIS_HAS_STALLGUARD(Z3))
         #if HAS_X2_SENSORLESS || HAS_Y2_SENSORLESS || HAS_Z2_SENSORLESS
           say_M914(PORTVAR_SOLO);
           SERIAL_ECHOPGM_P(port, " I1");
@@ -2674,12 +2662,10 @@ void MarlinSettings::reset(PORTARG_SOLO) {
           SERIAL_EOL_P(port);
         #endif
 
-        #define HAS_Z3_SENSORLESS (defined(Z_HOMING_SENSITIVITY) && ENABLED(Z3_IS_TMC2130))
         #if HAS_Z3_SENSORLESS
           say_M914(PORTVAR_SOLO);
           SERIAL_ECHOPGM_P(port, " I2");
-          SERIAL_ECHOPAIR_P(port, " Z", stepperZ3.sgt());
-          SERIAL_EOL_P(port);
+          SERIAL_ECHOLNPAIR_P(port, " Z", stepperZ3.sgt());
         #endif
 
       #endif // SENSORLESS_HOMING

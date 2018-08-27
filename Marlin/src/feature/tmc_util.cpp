@@ -227,7 +227,34 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
                     ext_E0[] PROGMEM = "E0", ext_E1[] PROGMEM = "E1",
                     ext_E2[] PROGMEM = "E2", ext_E3[] PROGMEM = "E3",
                     ext_E4[] PROGMEM = "E4";
-  static const char* const tmc_axes[] PROGMEM = { ext_X, ext_Y, ext_Z, ext_X2, ext_Y2, ext_Z2, ext_Z3, ext_E0, ext_E1, ext_E2, ext_E3, ext_E4 };
+  static const char* const tmc_axes[] PROGMEM = {
+    ext_X, ext_Y, ext_Z
+    #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(X_DUAL_STEPPER_DRIVERS)
+      , ext_X2
+    #endif
+    #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
+      , ext_Y2
+    #endif
+    #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
+      , ext_Z2
+    #endif
+    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+      , ext_Z3
+    #endif
+    , ext_E0
+    #if E_STEPPERS > 1
+      , ext_E1
+      #if E_STEPPERS > 2
+        , ext_E2
+        #if E_STEPPERS > 3
+          , ext_E3
+          #if E_STEPPERS > 4
+            , ext_E4
+          #endif
+        #endif
+      #endif
+    #endif
+  };
   serialprintPGM((char*)pgm_read_ptr(&tmc_axes[axis]));
 }
 
