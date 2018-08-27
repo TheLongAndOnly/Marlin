@@ -240,7 +240,7 @@
     #if AXIS_DRIVER_TYPE(Z2, TMC2130)
       _TMC2130_INIT(Z2, planner.axis_steps_per_mm[Z_AXIS]);
     #endif
-    #if XIS_DRIVER_TYPE(Z3, TMC2130)
+    #if AXIS_DRIVER_TYPE(Z3, TMC2130)
       _TMC2130_INIT(Z3, planner.axis_steps_per_mm[Z_AXIS]);
     #endif
     #if AXIS_DRIVER_TYPE(E0, TMC2130)
@@ -439,7 +439,11 @@
       #endif
     #endif
     #if AXIS_DRIVER_TYPE(Z3, TMC2208)
-      Z3_HARDWARE_SERIAL.begin(115200);
+      #ifdef Z3_HARDWARE_SERIAL
+        Z3_HARDWARE_SERIAL.begin(115200);
+      #else
+        stepperZ3.beginSerial(115200);
+      #endif
     #endif
     #if AXIS_DRIVER_TYPE(E0, TMC2208)
       #ifdef E0_HARDWARE_SERIAL
