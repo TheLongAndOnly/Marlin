@@ -184,7 +184,10 @@ void GcodeSuite::M912() {
             if (index < 2) TMC_SET_PWMTHRS(Z,Z);
           #endif
           #if AXIS_HAS_STEALTHCHOP(Z2)
-            if (!(index & 1)) TMC_SET_PWMTHRS(Z,Z2);
+            if (index == 0 || index == 2) TMC_SET_PWMTHRS(Z,Z2);
+          #endif
+          #if AXIS_HAS_STEALTHCHOP(Z3)
+            if (index == 0 || index == 3) TMC_SET_PWMTHRS(Z,Z3);
           #endif
           #if Z3_IS_TRINAMIC
             if (index == 2) TMC_SET_PWMTHRS(Z,Z3);
@@ -294,7 +297,10 @@ void GcodeSuite::M912() {
               if (index < 2) TMC_SET_SGT(Z);
             #endif
             #if AXIS_HAS_STALLGUARD(Z2)
-              if (!(index & 1)) TMC_SET_SGT(Z2);
+              if (index == 0 || index == 2) TMC_SET_SGT(Z2);
+            #endif
+            #if AXIS_HAS_STALLGUARD(Z3)
+              if (index == 0 || index == 3) TMC_SET_SGT(Z3);
             #endif
             break;
         #endif
@@ -325,7 +331,7 @@ void GcodeSuite::M912() {
         #if AXIS_HAS_STALLGUARD(Z2)
           TMC_SAY_SGT(Z2);
         #endif
-        #if ENABLED(Z3_IS_TMC2130)
+        #if AXIS_HAS_STALLGUARD(Z3)
           TMC_SAY_SGT(Z3);
         #endif
       #endif
@@ -401,7 +407,7 @@ void GcodeSuite::M912() {
     #if AXIS_IS_TMC(Z2)
       stepperZ2.setCurrent(Z2_current_1, R_SENSE, HOLD_MULTIPLIER);
     #endif
-    #if Z3_IS_TRINAMIC
+    #if AXIS_IS_TMC(Z3)
       stepperZ3.setCurrent(Z3_current_1, R_SENSE, HOLD_MULTIPLIER);
     #endif
 

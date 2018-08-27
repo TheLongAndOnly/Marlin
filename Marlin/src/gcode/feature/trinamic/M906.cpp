@@ -64,7 +64,7 @@ void GcodeSuite::M906() {
         #if AXIS_IS_TMC(Z2)
           if (index == 1) TMC_SET_CURRENT(Z2);
         #endif
-        #if Z3_IS_TRINAMIC
+        #if AXIS_IS_TMC(Z3)
           if (index == 2) TMC_SET_CURRENT(Z3);
         #endif
         break;
