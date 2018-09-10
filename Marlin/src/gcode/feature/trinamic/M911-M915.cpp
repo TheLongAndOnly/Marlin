@@ -56,6 +56,9 @@ void GcodeSuite::M911() {
   #if M91x_USE(Z2)
     tmc_report_otpw(stepperZ2, TMC_Z2);
   #endif
+  #if M91x_USE(Z3)
+    tmc_report_otpw(stepperZ3, TMC_Z3);
+  #endif
   #if M91x_USE_E(0)
     tmc_report_otpw(stepperE0, TMC_E0);
   #endif
@@ -75,7 +78,7 @@ void GcodeSuite::M911() {
 
 /**
  * M912: Clear TMC stepper driver overtemperature pre-warn flag held by the library
- *       Specify one or more axes with X, Y, Z, X1, Y1, Z1, X2, Y2, Z2, and E[index].
+ *       Specify one or more axes with X, Y, Z, X1, Y1, Z1, X2, Y2, Z2, Z3 and E[index].
  *       If no axes are given, clear all.
  *
  * Examples:
@@ -112,13 +115,16 @@ void GcodeSuite::M912() {
       #endif
     #endif
 
-    #if M91x_USE(Z) || M91x_USE(Z2)
+    #if M91x_USE(Z) || M91x_USE(Z2) || M91x_USE(Z3)
       const uint8_t zval = parser.byteval(axis_codes[Z_AXIS], 10);
       #if M91x_USE(Z)
         if (hasNone || zval == 1 || (hasZ && zval == 10)) tmc_clear_otpw(stepperZ, TMC_Z);
       #endif
       #if M91x_USE(Z2)
         if (hasNone || zval == 2 || (hasZ && zval == 10)) tmc_clear_otpw(stepperZ2, TMC_Z2);
+      #endif
+      #if M91x_USE(Z3)
+        if (hasNone || zval == 3 || (hasZ && zval == 10)) tmc_clear_otpw(stepperZ3, TMC_Z3);
       #endif
     #endif
 
@@ -178,7 +184,13 @@ void GcodeSuite::M912() {
             if (index < 2) TMC_SET_PWMTHRS(Z,Z);
           #endif
           #if AXIS_HAS_STEALTHCHOP(Z2)
-            if (!(index & 1)) TMC_SET_PWMTHRS(Z,Z2);
+            if (index == 0 || index == 2) TMC_SET_PWMTHRS(Z,Z2);
+          #endif
+          #if AXIS_HAS_STEALTHCHOP(Z3)
+            if (index == 0 || index == 3) TMC_SET_PWMTHRS(Z,Z3);
+          #endif
+          #if Z3_IS_TRINAMIC
+            if (index == 2) TMC_SET_PWMTHRS(Z,Z3);
           #endif
           break;
         case E_AXIS: {
@@ -222,6 +234,9 @@ void GcodeSuite::M912() {
       #endif
       #if AXIS_HAS_STEALTHCHOP(Z2)
         TMC_SAY_PWMTHRS(Z,Z2);
+      #endif
+      #if AXIS_HAS_STEALTHCHOP(Z3)
+        TMC_SAY_PWMTHRS(Z,Z3);
       #endif
       #if AXIS_HAS_STEALTHCHOP(E0)
         TMC_SAY_PWMTHRS_E(0);
@@ -282,7 +297,10 @@ void GcodeSuite::M912() {
               if (index < 2) TMC_SET_SGT(Z);
             #endif
             #if AXIS_HAS_STALLGUARD(Z2)
-              if (!(index & 1)) TMC_SET_SGT(Z2);
+              if (index == 0 || index == 2) TMC_SET_SGT(Z2);
+            #endif
+            #if AXIS_HAS_STALLGUARD(Z3)
+              if (index == 0 || index == 3) TMC_SET_SGT(Z3);
             #endif
             break;
         #endif
@@ -313,7 +331,40 @@ void GcodeSuite::M912() {
         #if AXIS_HAS_STALLGUARD(Z2)
           TMC_SAY_SGT(Z2);
         #endif
+        #if AXIS_HAS_STALLGUARD(Z3)
+          TMC_SAY_SGT(Z3);
+        #endif
       #endif
+    }
+
+    if (report) LOOP_XYZ(i) switch (i) {
+      case X_AXIS:
+        #if ENABLED(X_IS_TMC2130) || ENABLED(IS_TRAMS)
+          TMC_SAY_SGT(X);
+        #endif
+        #if ENABLED(X2_IS_TMC2130)
+          TMC_SAY_SGT(X2);
+        #endif
+        break;
+      case Y_AXIS:
+        #if ENABLED(Y_IS_TMC2130) || ENABLED(IS_TRAMS)
+          TMC_SAY_SGT(Y);
+        #endif
+        #if ENABLED(Y2_IS_TMC2130)
+          TMC_SAY_SGT(Y2);
+        #endif
+        break;
+      case Z_AXIS:
+        #if ENABLED(Z_IS_TMC2130) || ENABLED(IS_TRAMS)
+          TMC_SAY_SGT(Z);
+        #endif
+        #if ENABLED(Z2_IS_TMC2130)
+          TMC_SAY_SGT(Z2);
+        #endif
+        #if ENABLED(Z3_IS_TMC2130)
+          TMC_SAY_SGT(Z3);
+        #endif
+        break;
     }
   }
 #endif // SENSORLESS_HOMING
@@ -339,6 +390,10 @@ void GcodeSuite::M912() {
       const uint16_t Z2_current_1 = stepperZ2.getCurrent();
       stepperZ2.setCurrent(_rms, R_SENSE, HOLD_MULTIPLIER);
     #endif
+    #if Z3_IS_TRINAMIC
+      const uint16_t Z3_current_1 = stepperZ3.getCurrent();
+      stepperZ3.setCurrent(_rms, R_SENSE, HOLD_MULTIPLIER);
+    #endif
 
     SERIAL_ECHOPAIR("\nCalibration current: Z", _rms);
 
@@ -351,6 +406,9 @@ void GcodeSuite::M912() {
     #endif
     #if AXIS_IS_TMC(Z2)
       stepperZ2.setCurrent(Z2_current_1, R_SENSE, HOLD_MULTIPLIER);
+    #endif
+    #if AXIS_IS_TMC(Z3)
+      stepperZ3.setCurrent(Z3_current_1, R_SENSE, HOLD_MULTIPLIER);
     #endif
 
     do_blocking_move_to_z(Z_MAX_POS);

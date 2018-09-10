@@ -234,25 +234,36 @@
   #define MAX_AUTORETRACT 99
 #endif
 
-// MS1 MS2 Stepper Driver Microstepping mode table
-#define MICROSTEP1 LOW,LOW
-#if ENABLED(HEROIC_STEPPER_DRIVERS)
-  #define MICROSTEP128 LOW,HIGH
-#else
-  #define MICROSTEP2 HIGH,LOW
-  #define MICROSTEP4 LOW,HIGH
-#endif
-#define MICROSTEP8 HIGH,HIGH
-#ifdef __SAM3X8E__
-  #if MB(ALLIGATOR)
-    #define MICROSTEP16 LOW,LOW
-    #define MICROSTEP32 HIGH,HIGH
+// MS1 MS2 MS3 Stepper Driver Microstepping mode table
+#if DISABLED(MICROSTEP_CUSTOM)
+  #define MICROSTEP1 LOW,LOW,LOW
+  #if ENABLED(HEROIC_STEPPER_DRIVERS)
+    #define MICROSTEP128 LOW,HIGH,LOW
   #else
-    #define MICROSTEP16 HIGH,HIGH
+    #define MICROSTEP2 HIGH,LOW,LOW
+    #define MICROSTEP4 LOW,HIGH,LOW
   #endif
-#else
-  #define MICROSTEP16 HIGH,HIGH
+  #define MICROSTEP8 HIGH,HIGH,LOW
+  #ifdef __SAM3X8E__
+    #if MB(ALLIGATOR)
+      #define MICROSTEP16 LOW,LOW,LOW
+      #define MICROSTEP32 HIGH,HIGH,LOW
+    #else
+      #define MICROSTEP16 HIGH,HIGH,LOW
+    #endif
+  #else
+    #define MICROSTEP16 HIGH,HIGH,LOW
+  #endif
 #endif
+
+#define HAS_MICROSTEP1 defined(MICROSTEP1)
+#define HAS_MICROSTEP2 defined(MICROSTEP2)
+#define HAS_MICROSTEP4 defined(MICROSTEP4)
+#define HAS_MICROSTEP8 defined(MICROSTEP8)
+#define HAS_MICROSTEP16 defined(MICROSTEP16)
+#define HAS_MICROSTEP32 defined(MICROSTEP32)
+#define HAS_MICROSTEP64 defined(MICROSTEP64)
+#define HAS_MICROSTEP128 defined(MICROSTEP128)
 
 /**
  * Override here because this is set in Configuration_adv.h
@@ -611,7 +622,7 @@
 /**
  * Z_DUAL_ENDSTOPS endstop reassignment
  */
-#if ENABLED(Z_DUAL_ENDSTOPS)
+#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
   #if Z_HOME_DIR > 0
     #if Z2_USE_ENDSTOP == _XMIN_
       #define Z2_MAX_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
@@ -661,9 +672,64 @@
   #endif
 #endif
 
+#if ENABLED(Z_TRIPLE_ENDSTOPS)
+  #if Z_HOME_DIR > 0
+    #if Z3_USE_ENDSTOP == _XMIN_
+      #define Z3_MAX_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
+      #define Z3_MAX_PIN X_MIN_PIN
+    #elif Z3_USE_ENDSTOP == _XMAX_
+      #define Z3_MAX_ENDSTOP_INVERTING X_MAX_ENDSTOP_INVERTING
+      #define Z3_MAX_PIN X_MAX_PIN
+    #elif Z3_USE_ENDSTOP == _YMIN_
+      #define Z3_MAX_ENDSTOP_INVERTING Y_MIN_ENDSTOP_INVERTING
+      #define Z3_MAX_PIN Y_MIN_PIN
+    #elif Z3_USE_ENDSTOP == _YMAX_
+      #define Z3_MAX_ENDSTOP_INVERTING Y_MAX_ENDSTOP_INVERTING
+      #define Z3_MAX_PIN Y_MAX_PIN
+    #elif Z3_USE_ENDSTOP == _ZMIN_
+      #define Z3_MAX_ENDSTOP_INVERTING Z_MIN_ENDSTOP_INVERTING
+      #define Z3_MAX_PIN Z_MIN_PIN
+    #elif Z3_USE_ENDSTOP == _ZMAX_
+      #define Z3_MAX_ENDSTOP_INVERTING Z_MAX_ENDSTOP_INVERTING
+      #define Z3_MAX_PIN Z_MAX_PIN
+    #else
+      #define Z3_MAX_ENDSTOP_INVERTING false
+    #endif
+    #define Z3_MIN_ENDSTOP_INVERTING false
+  #else
+    #if Z3_USE_ENDSTOP == _XMIN_
+      #define Z3_MIN_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
+      #define Z3_MIN_PIN X_MIN_PIN
+    #elif Z3_USE_ENDSTOP == _XMAX_
+      #define Z3_MIN_ENDSTOP_INVERTING X_MAX_ENDSTOP_INVERTING
+      #define Z3_MIN_PIN X_MAX_PIN
+    #elif Z3_USE_ENDSTOP == _YMIN_
+      #define Z3_MIN_ENDSTOP_INVERTING Y_MIN_ENDSTOP_INVERTING
+      #define Z3_MIN_PIN Y_MIN_PIN
+    #elif Z3_USE_ENDSTOP == _YMAX_
+      #define Z3_MIN_ENDSTOP_INVERTING Y_MAX_ENDSTOP_INVERTING
+      #define Z3_MIN_PIN Y_MAX_PIN
+    #elif Z3_USE_ENDSTOP == _ZMIN_
+      #define Z3_MIN_ENDSTOP_INVERTING Z_MIN_ENDSTOP_INVERTING
+      #define Z3_MIN_PIN Z_MIN_PIN
+    #elif Z3_USE_ENDSTOP == _ZMAX_
+      #define Z3_MIN_ENDSTOP_INVERTING Z_MAX_ENDSTOP_INVERTING
+      #define Z3_MIN_PIN Z_MAX_PIN
+    #else
+      #define Z3_MIN_ENDSTOP_INVERTING false
+    #endif
+    #define Z3_MAX_ENDSTOP_INVERTING false
+  #endif
+#endif
+
 // Is an endstop plug used for the Z2 endstop or the bed probe?
 #define IS_Z2_OR_PROBE(A,M) ( \
-     (ENABLED(Z_DUAL_ENDSTOPS) && Z2_USE_ENDSTOP == _##A##M##_) \
+     ((ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)) && Z2_USE_ENDSTOP == _##A##M##_) \
+  || (ENABLED(Z_MIN_PROBE_ENDSTOP) && Z_MIN_PROBE_PIN == A##_##M##_PIN ) )
+
+// Is an endstop plug used for the Z3 endstop or the bed probe?
+#define IS_Z3_OR_PROBE(A,M) ( \
+     (ENABLED(Z_TRIPLE_ENDSTOPS) && Z3_USE_ENDSTOP == _##A##M##_) \
   || (ENABLED(Z_MIN_PROBE_ENDSTOP) && Z_MIN_PROBE_PIN == A##_##M##_PIN ) )
 
 /**
@@ -749,6 +815,10 @@
 #define HAS_Z2_STEP       (PIN_EXISTS(Z2_STEP))
 #define HAS_Z2_MICROSTEPS (PIN_EXISTS(Z2_MS1))
 
+#define HAS_Z3_ENABLE     (PIN_EXISTS(Z3_ENABLE))
+#define HAS_Z3_DIR        (PIN_EXISTS(Z3_DIR))
+#define HAS_Z3_STEP       (PIN_EXISTS(Z3_STEP))
+
 // Extruder steppers and solenoids
 #define HAS_E0_ENABLE     (PIN_EXISTS(E0_ENABLE))
 #define HAS_E0_DIR        (PIN_EXISTS(E0_DIR))
@@ -810,6 +880,8 @@
 #define HAS_Y2_MAX (PIN_EXISTS(Y2_MAX))
 #define HAS_Z2_MIN (PIN_EXISTS(Z2_MIN))
 #define HAS_Z2_MAX (PIN_EXISTS(Z2_MAX))
+#define HAS_Z3_MIN (PIN_EXISTS(Z3_MIN))
+#define HAS_Z3_MAX (PIN_EXISTS(Z3_MAX))
 #define HAS_Z_MIN_PROBE_PIN (PIN_EXISTS(Z_MIN_PROBE))
 
 // ADC Temp Sensors (Thermistor or Thermocouple with amplifier ADC interface)
@@ -903,7 +975,7 @@
 #define HAS_CASE_LIGHT (PIN_EXISTS(CASE_LIGHT) && ENABLED(CASE_LIGHT_ENABLE))
 
 // Digital control
-#define HAS_MICROSTEPS (HAS_X_MICROSTEPS || HAS_Y_MICROSTEPS || HAS_Z_MICROSTEPS || HAS_E0_MICROSTEPS || HAS_E1_MICROSTEPS || HAS_E2_MICROSTEPS || HAS_E3_MICROSTEPS || HAS_E4_MICROSTEPS)
+#define HAS_MICROSTEPS (HAS_X_MICROSTEPS || HAS_X2_MICROSTEPS || HAS_Y_MICROSTEPS || HAS_Y2_MICROSTEPS || HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_E0_MICROSTEPS || HAS_E1_MICROSTEPS || HAS_E2_MICROSTEPS || HAS_E3_MICROSTEPS || HAS_E4_MICROSTEPS)
 #define HAS_STEPPER_RESET (PIN_EXISTS(STEPPER_RESET))
 #define HAS_DIGIPOTSS (PIN_EXISTS(DIGIPOTSS))
 #define HAS_MOTOR_CURRENT_PWM (PIN_EXISTS(MOTOR_CURRENT_PWM_XY) || PIN_EXISTS(MOTOR_CURRENT_PWM_Z) || PIN_EXISTS(MOTOR_CURRENT_PWM_E))
@@ -1495,6 +1567,14 @@
 
 #if ENABLED(G29_RETRY_AND_RECOVER)
   #define USE_EXECUTE_COMMANDS_IMMEDIATE
+#endif
+
+#if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+  #define Z_STEPPER_COUNT 3
+#elif ENABLED(Z_DUAL_STEPPER_DRIVERS)
+  #define Z_STEPPER_COUNT 2
+#else
+  #define Z_STEPPER_COUNT 1
 #endif
 
 #endif // CONDITIONALS_POST_H

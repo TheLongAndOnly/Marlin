@@ -59,7 +59,7 @@
     #endif
   }
 
-#elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS)
+#elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
 
   #include "../../module/endstops.h"
 
@@ -81,9 +81,15 @@
         report = false;
       }
     #endif
-    #if ENABLED(Z_DUAL_ENDSTOPS)
+    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
       if (parser.seen('Z')) {
         endstops.z_endstop_adj = parser.value_linear_units();
+        report = false;
+      }
+    #endif
+    #if ENABLED(Z_TRIPLE_ENDSTOPS)
+      if (parser.seen('Z2')) {
+        endstops.z_endstop_adj2 = parser.value_linear_units();
         report = false;
       }
     #endif
@@ -95,8 +101,11 @@
       #if ENABLED(Y_DUAL_ENDSTOPS)
         SERIAL_ECHOPAIR(" Y", endstops.y_endstop_adj);
       #endif
-      #if ENABLED(Z_DUAL_ENDSTOPS)
+      #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
         SERIAL_ECHOPAIR(" Z", endstops.z_endstop_adj);
+      #endif
+      #if ENABLED(Z_TRIPLE_ENDSTOPS)
+        SERIAL_ECHOPAIR(" Z2", endstops.z_endstop_adj2);
       #endif
       SERIAL_EOL();
     }

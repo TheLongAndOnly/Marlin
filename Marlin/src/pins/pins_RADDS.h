@@ -106,16 +106,30 @@
 //
 //#define RADDS_EXTENSION
 #if ENABLED(RADDS_EXTENSION)
-  #define E3_STEP_PIN        35
-  #define E3_DIR_PIN         33
-  #define E3_ENABLE_PIN      37
-  #ifndef E3_CS_PIN
-    #define E3_CS_PIN         6
-  #endif
+  //#define RADDS_EXT_USE_Z3
+  #if ENABLED(RADDS_EXT_USE_Z3)
+    #define Z3_STEP_PIN        35
+    #define Z3_DIR_PIN         33
+    #define Z3_ENABLE_PIN      37
+    #ifndef Z3_CS_PIN
+      #define Z3_CS_PIN         6 // does not seem to make sense
+    #endif
 
-  #define E3_MS1_PIN         67
-  #define E3_MS2_PIN         68
-  #define E3_MS3_PIN         69
+    #define Z3_MS1_PIN         67
+    #define Z3_MS2_PIN         68
+    #define Z3_MS3_PIN         69
+  #else
+    #define E3_STEP_PIN        35
+    #define E3_DIR_PIN         33
+    #define E3_ENABLE_PIN      37
+    #ifndef E3_CS_PIN
+      #define E3_CS_PIN         6
+    #endif
+
+    #define E3_MS1_PIN         67
+    #define E3_MS2_PIN         68
+    #define E3_MS3_PIN         69
+  #endif
 
   #define Z2_STEP_PIN        29
   #define Z2_DIR_PIN         27
@@ -168,6 +182,7 @@
 // Misc. Functions
 //
 #define SDSS                4
+#define SD_DETECT_PIN      14
 #define PS_ON_PIN          40   // SERVO3_PIN
 
 #ifndef FIL_RUNOUT_PIN
