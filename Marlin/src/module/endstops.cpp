@@ -568,7 +568,7 @@ void Endstops::update() {
       UPDATE_ENDSTOP_BIT(Z, MAX);
     #endif
   #endif
-
+  
   #if ENABLED(ENDSTOP_NOISE_FILTER)
     /**
      * Filtering out noise on endstops requires a delayed decision. Let's assume, due to noise,
