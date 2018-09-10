@@ -2562,7 +2562,13 @@ void Stepper::report_positions() {
         SET_OUTPUT(Z2_MS3_PIN);
       #endif
     #endif
-    #if HAS_E0_MICROSTEPS
+    #if HAS_Z3_MICROSTEPS
+      SET_OUTPUT(Z3_MS1_PIN);
+      SET_OUTPUT(Z3_MS2_PIN);
+      #if PIN_EXISTS(Z3_MS3)
+        SET_OUTPUT(Z3_MS3_PIN);
+      #endif
+    #endif    #if HAS_E0_MICROSTEPS
       SET_OUTPUT(E0_MS1_PIN);
       SET_OUTPUT(E0_MS2_PIN);
       #if PIN_EXISTS(E0_MS3)
@@ -2624,14 +2630,17 @@ void Stepper::report_positions() {
           #endif
           break;
       #endif
-      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS
+      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS
         case 2:
-          #if HAS_Z_MICROSTEPS
-            WRITE(Z_MS1_PIN, ms1);
-          #endif
-          #if HAS_Z2_MICROSTEPS
-            WRITE(Z2_MS1_PIN, ms1);
-          #endif
+        #if HAS_Z_MICROSTEPS
+          WRITE(Z_MS1_PIN, ms1);
+        #endif
+        #if HAS_Z2_MICROSTEPS
+          WRITE(Z2_MS1_PIN, ms1);
+        #endif
+        #if HAS_Z3_MICROSTEPS
+          WRITE(Z3_MS1_PIN, ms1);
+        #endif
           break;
       #endif
       #if HAS_E0_MICROSTEPS
@@ -2671,14 +2680,17 @@ void Stepper::report_positions() {
           #endif
           break;
       #endif
-      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS
+      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS
         case 2:
-          #if HAS_Z_MICROSTEPS
-            WRITE(Z_MS2_PIN, ms2);
-          #endif
-          #if HAS_Z2_MICROSTEPS
-            WRITE(Z2_MS2_PIN, ms2);
-          #endif
+        #if HAS_Z_MICROSTEPS
+          WRITE(Z_MS2_PIN, ms2);
+        #endif
+        #if HAS_Z2_MICROSTEPS
+          WRITE(Z2_MS2_PIN, ms2);
+        #endif
+        #if HAS_Z3_MICROSTEPS
+          WRITE(Z3_MS2_PIN, ms2);
+        #endif
           break;
       #endif
       #if HAS_E0_MICROSTEPS
@@ -2718,14 +2730,17 @@ void Stepper::report_positions() {
           #endif
           break;
       #endif
-      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS
+      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS
         case 2:
-          #if HAS_Z_MICROSTEPS && PIN_EXISTS(Z_MS3)
-            WRITE(Z_MS3_PIN, ms3);
-          #endif
-          #if HAS_Z2_MICROSTEPS && PIN_EXISTS(Z2_MS3)
-            WRITE(Z2_MS3_PIN, ms3);
-          #endif
+        #if HAS_Z_MICROSTEPS && PIN_EXISTS(Z_MS3)
+          WRITE(Z_MS3_PIN, ms3);
+        #endif
+        #if HAS_Z2_MICROSTEPS && PIN_EXISTS(Z2_MS3)
+          WRITE(Z2_MS3_PIN, ms3);
+        #endif
+        #if HAS_Z3_MICROSTEPS && PIN_EXISTS(Z3_MS3)
+          WRITE(Z3_MS3_PIN, ms3);
+        #endif
           break;
       #endif
       #if HAS_E0_MICROSTEPS && PIN_EXISTS(E0_MS3)
