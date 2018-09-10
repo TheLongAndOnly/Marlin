@@ -287,6 +287,13 @@
 
 //#define Z_LATE_ENABLE // Enable Z the last moment. Needed if your Z driver overheats.
 
+// Employ an external closed loop controller. Override pins here if needed.
+//#define EXTERNAL_CLOSED_LOOP_CONTROLLER
+#if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)
+  //#define CLOSED_LOOP_ENABLE_PIN        -1
+  //#define CLOSED_LOOP_MOVE_COMPLETE_PIN -1
+#endif
+
 /**
  * Dual Steppers / Dual Endstops
  *
@@ -394,24 +401,23 @@
 // Enable this if X or Y can't home without homing the other axis first.
 //#define CODEPENDENT_XY_HOMING
 
-// allow automatic alignment of z steppers for dual z stepper configuration and movable probe
+// Automatic alignment of z steppers for dual z stepper configuration and movable probe
 //#define Z_STEPPER_AUTO_ALIGN
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
-  // define probe x-position for Z1, Z2, Z3
-  #define Z_STEPPER_ALIGN_XPOS {10, 150, 290}
-  #define Z_STEPPER_ALIGN_YPOS {290, 10, 290}
-  // set number of iterations to align
+  // Define probe x-position for Z1, Z2, Z3
+  #define Z_STEPPER_ALIGN_XPOS { 10, 150, 290 }
+  #define Z_STEPPER_ALIGN_YPOS { 290, 10, 290 }
+  // Set number of iterations to align
   #define Z_STEPPER_ALIGN_ITERATIONS 3
-  // enable to restore leveling setup after operation
+  // Enable to restore leveling setup after operation
   #define RESTORE_LEVELING_AFTER_G34
-  // amount of z increase prior to moving probe
+  // Amount of z increase prior to moving probe
   #define Z_STEPPER_ALIGN_SAFEHEIGHT 5
   // Use the amplification factor to de-/increase correction step.
   // In case the stepper (spindle) position is further out than the test point
-  // Use a value > 1. Careful this might lead to instabilities
+  // Use a value > 1. NOTE: This may cause instability
   #define Z_STEPPER_ALIGN_AMP 1.0
-  // Define a stop criteria. If the accuracy is better than the defined value
-  // we stop iterating early
+  // Stop criterion. If the accuracy is better than this stop iterating early
   #define Z_STEPPER_ALIGN_ACC 0.02
 #endif
 
@@ -483,6 +489,23 @@
  * lowest stepping frequencies.
  */
 //#define ADAPTIVE_STEP_SMOOTHING
+
+/**
+ * Custom Microstepping PIN settings
+ * Allows additional flexibility to defined the proper PIN settings for different
+ * stepper drivers. Defaults are normally applied in Conditional_post.h
+ * Uncomment MICROSTEP_CUSTOM to enable manual definition and ensure all microstep modes selected below
+ * are defined. At max, 3 MS PINS are supported, if less are defined, the last settings are ignoreds
+ */
+//#define MICROSTEP_CUSTOM
+#if ENABLED(MICROSTEP_CUSTOM)
+  #define MICROSTEP1 LOW,LOW,LOW
+  #define MICROSTEP2 HIGH,LOW,LOW
+  #define MICROSTEP4 LOW,HIGH,LOW
+  #define MICROSTEP8 HIGH,HIGH,LOW
+  #define MICROSTEP16 LOW,LOW,HIGH
+  #define MICROSTEP32 HIGH,LOW,HIGH
+#endif
 
 // Microstep setting (Only functional when stepper driver microstep pins are connected to MCU.
 #define MICROSTEP_MODES { 16, 16, 16, 16, 16 } // [1,2,4,8,16]
@@ -1238,6 +1261,7 @@
   #define Y2_HYBRID_THRESHOLD    100
   #define Z_HYBRID_THRESHOLD       3
   #define Z2_HYBRID_THRESHOLD      3
+  #define Z3_HYBRID_THRESHOLD      3
   #define E0_HYBRID_THRESHOLD     30
   #define E1_HYBRID_THRESHOLD     30
   #define E2_HYBRID_THRESHOLD     30

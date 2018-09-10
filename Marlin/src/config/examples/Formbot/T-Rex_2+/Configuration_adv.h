@@ -291,6 +291,13 @@
 
 //#define Z_LATE_ENABLE // Enable Z the last moment. Needed if your Z driver overheats.
 
+// Employ an external closed loop controller. Override pins here if needed.
+//#define EXTERNAL_CLOSED_LOOP_CONTROLLER
+#if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)
+  //#define CLOSED_LOOP_ENABLE_PIN        -1
+  //#define CLOSED_LOOP_MOVE_COMPLETE_PIN -1
+#endif
+
 /**
  * Dual Steppers / Dual Endstops
  *
@@ -332,6 +339,17 @@
   #if ENABLED(Z_DUAL_ENDSTOPS)
     #define Z2_USE_ENDSTOP _XMAX_
     #define Z_DUAL_ENDSTOPS_ADJUSTMENT  0
+  #endif
+#endif
+
+//#define Z_TRIPLE_STEPPER_DRIVERS
+#if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+  //#define Z_TRIPLE_ENDSTOPS
+  #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    #define Z2_USE_ENDSTOP _XMAX_
+    #define Z3_USE_ENDSTOP _YMAX_
+    #define Z_TRIPLE2_ENDSTOPS_ADJUSTMENT  0
+    #define Z_TRIPLE3_ENDSTOPS_ADJUSTMENT  0
   #endif
 #endif
 
@@ -401,6 +419,26 @@
 // Enable this if X or Y can't home without homing the other axis first.
 //#define CODEPENDENT_XY_HOMING
 
+// Automatic alignment of z steppers for dual z stepper configuration and movable probe
+//#define Z_STEPPER_AUTO_ALIGN
+#if ENABLED(Z_STEPPER_AUTO_ALIGN)
+  // Define probe x-position for Z1, Z2, Z3
+  #define Z_STEPPER_ALIGN_XPOS { 10, 150, 290 }
+  #define Z_STEPPER_ALIGN_YPOS { 290, 10, 290 }
+  // Set number of iterations to align
+  #define Z_STEPPER_ALIGN_ITERATIONS 3
+  // Enable to restore leveling setup after operation
+  #define RESTORE_LEVELING_AFTER_G34
+  // Amount of z increase prior to moving probe
+  #define Z_STEPPER_ALIGN_SAFEHEIGHT 5
+  // Use the amplification factor to de-/increase correction step.
+  // In case the stepper (spindle) position is further out than the test point
+  // Use a value > 1. NOTE: This may cause instability
+  #define Z_STEPPER_ALIGN_AMP 1.0
+  // Stop criterion. If the accuracy is better than this stop iterating early
+  #define Z_STEPPER_ALIGN_ACC 0.02
+#endif
+
 // @section machine
 
 #define AXIS_RELATIVE_MODES {false, false, false, false}
@@ -469,6 +507,23 @@
  * lowest stepping frequencies.
  */
 //#define ADAPTIVE_STEP_SMOOTHING
+
+/**
+ * Custom Microstepping PIN settings
+ * Allows additional flexibility to defined the proper PIN settings for different
+ * stepper drivers. Defaults are normally applied in Conditional_post.h
+ * Uncomment MICROSTEP_CUSTOM to enable manual definition and ensure all microstep modes selected below
+ * are defined. At max, 3 MS PINS are supported, if less are defined, the last settings are ignoreds
+ */
+//#define MICROSTEP_CUSTOM
+#if ENABLED(MICROSTEP_CUSTOM)
+  #define MICROSTEP1 LOW,LOW,LOW
+  #define MICROSTEP2 HIGH,LOW,LOW
+  #define MICROSTEP4 LOW,HIGH,LOW
+  #define MICROSTEP8 HIGH,HIGH,LOW
+  #define MICROSTEP16 LOW,LOW,HIGH
+  #define MICROSTEP32 HIGH,LOW,HIGH
+#endif
 
 // Microstep setting (Only functional when stepper driver microstep pins are connected to MCU.
 #define MICROSTEP_MODES { 16, 16, 16, 16, 16 } // [1,2,4,8,16]
@@ -1087,6 +1142,10 @@
   #define Z2_SENSE_RESISTOR   91
   #define Z2_MICROSTEPS       16
 
+  #define Z3_MAX_CURRENT    1000
+  #define Z3_SENSE_RESISTOR   91
+  #define Z3_MICROSTEPS       16
+
   #define E0_MAX_CURRENT    1000
   #define E0_SENSE_RESISTOR   91
   #define E0_MICROSTEPS       16
@@ -1153,6 +1212,9 @@
   #define Z2_CURRENT         800
   #define Z2_MICROSTEPS       16
 
+  #define Z3_CURRENT         800
+  #define Z3_MICROSTEPS       16
+
   #define E0_CURRENT         800
   #define E0_MICROSTEPS       16
 
@@ -1217,6 +1279,7 @@
   #define Y2_HYBRID_THRESHOLD    100
   #define Z_HYBRID_THRESHOLD       3
   #define Z2_HYBRID_THRESHOLD      3
+  #define Z3_HYBRID_THRESHOLD      3
   #define E0_HYBRID_THRESHOLD     30
   #define E1_HYBRID_THRESHOLD     30
   #define E2_HYBRID_THRESHOLD     30
@@ -1519,12 +1582,12 @@
  */
 //#define CUSTOM_USER_MENUS
 #if ENABLED(CUSTOM_USER_MENUS)
-//#define USER_SCRIPT_AUDIBLE_FEEDBACK
+  //#define USER_SCRIPT_AUDIBLE_FEEDBACK
   #define USER_SCRIPT_RETURN  // Return to status screen after a script
 
   #define USER_DESC_1  "User cmd 1"
   #define USER_GCODE_1 "G28 X \n"
- 
+
   #define USER_DESC_2  "User cmd 2"
   #define USER_GCODE_2 "G28 \nG1 X100 \n"
 

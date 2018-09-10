@@ -47,14 +47,13 @@
 #endif
 
 // Data
-float z_auto_align_xpos[] = Z_STEPPER_ALIGN_XPOS;
-float z_auto_align_ypos[] = Z_STEPPER_ALIGN_YPOS;
+float z_auto_align_xpos[] = Z_STEPPER_ALIGN_XPOS,
+      z_auto_align_ypos[] = Z_STEPPER_ALIGN_YPOS;
 
 /**
- * G34 - Z-Stepper automatic alignment
+ * G34: Z-Stepper automatic alignment
  *
  * Parameters: I<iterations> T<accuracy> A<amplification>
- *
  */
 void GcodeSuite::G34() {
   #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -103,9 +102,8 @@ void GcodeSuite::G34() {
     SERIAL_ECHOLNPGM("<<< G34");
     return;
   }
-  else {
+  else
     z_auto_align_accuracy = temp_accuracy;
-  }
 
   float z_auto_align_amplification = Z_STEPPER_ALIGN_AMP;
   const float temp_amplification = parser.floatval('A', z_auto_align_amplification);
@@ -114,9 +112,8 @@ void GcodeSuite::G34() {
     SERIAL_ECHOLNPGM("<<< G34");
     return;
   }
-  else {
+  else
     z_auto_align_amplification = temp_amplification;
-  }
 
   // Wait for planner moves to finish!
   planner.synchronize();
@@ -148,37 +145,32 @@ void GcodeSuite::G34() {
     extruder_duplication_enabled = false;
   #endif
 
-  // start calibration iterations
+  // Start calibration iterations
   float z_measured[Z_STEPPER_COUNT] = { 0.0f };
-  // remember correction from iteration to iteration to determine errors
+  // Remember correction from iteration to iteration to determine errors
   float last_z_align_move[Z_STEPPER_COUNT] = { 10000.0f };
   for (uint8_t iteration = 0; iteration < z_auto_align_iterations; ++iteration) {
     #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (DEBUGGING(LEVELING)) {
-        SERIAL_ECHOLNPGM("> probing all positions.");
-      }
+      if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> probing all positions.");
     #endif
 
-    // reset minimum value
+    // Reset minimum value
     float z_measured_min = 100000.0f;
-    // for each iteration we move through all probe positions (one per Z-Stepper)
+    // For each iteration we move through all probe positions (one per Z-Stepper)
     uint8_t zstepper;
     for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
-      float pos_x = z_auto_align_xpos[zstepper];
-      float pos_y = z_auto_align_ypos[zstepper];
-
-      // remember the measured z height per stepper
-      z_measured[zstepper] = probe_pt(pos_x, pos_y, PROBE_PT_RAISE, false);
+      // Remember the measured z height per stepper
+      z_measured[zstepper] = probe_pt(z_auto_align_xpos[zstepper], z_auto_align_ypos[zstepper], PROBE_PT_RAISE, false);
 
       if (isnan(z_measured[zstepper])) {
-        // we need to stop here
+        // We need to stop here
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) {
             SERIAL_ECHOLNPGM("> probing failed.");
             SERIAL_ECHOLNPGM("<<< G34");
           }
         #endif
-        return;        
+        return;
       }
 
       #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -188,46 +180,42 @@ void GcodeSuite::G34() {
         }
       #endif
 
-      // remember the maximum position to calculate the correction
+      // Remember the maximum position to calculate the correction
       z_measured_min = MIN(z_measured_min, z_measured[zstepper]);
     }
 
-    // remember the current z position to return to
+    // Remember the current z position to return to
     float z_original_position = current_position[Z_AXIS];
 
-    // we can stop iterations early, if all corrections are smaller than our accuracy
+    // We can stop iterations early, if all corrections are smaller than our accuracy
     bool breakEarly = true;
-    // correct stepper offsets and re-iterate
+    // Correct stepper offsets and re-iterate
     for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
-      // ensure 
+      // Ensure
       stepper.set_separate_multi_axis(true);
-  
-      // we enable each stepper separately
+
+      // We enable each stepper separately
       stepper.set_z_lock(true);
       stepper.set_z2_lock(true);
       #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
         stepper.set_z3_lock(true);
       #endif
 
-      // calculate current stepper move
+      // Calculate current stepper move
       float z_align_move = z_measured[zstepper] - z_measured_min;
 
-      // check, if we loose accuracy compared to last move
+      // Check, if we loose accuracy compared to last move
       if (last_z_align_move[zstepper] + 1.0f < ABS(z_align_move)) {
-        // we need to stop here
+        // We need to stop here
         #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (DEBUGGING(LEVELING)) {
-            SERIAL_ECHOLNPGM("> detected decreasing accuracy.");
-            SERIAL_ECHOLNPGM("<<< G34");
-          }
+          if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> detected decreasing accuracy.\n<<< G34");
         #endif
         return;
       }
-      else {
+      else
         last_z_align_move[zstepper] = ABS(z_align_move);
-      }
 
-      // stop early, if all measured points achieve accuracy targets
+      // Stop early, if all measured points achieve accuracy targets
       breakEarly &= (ABS(z_align_move) <= z_auto_align_accuracy);
 
       #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -244,14 +232,14 @@ void GcodeSuite::G34() {
         case 1:
           stepper.set_z2_lock(false);
           break;
-      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-        case 2:
-          stepper.set_z3_lock(false);
-          break;
-      #endif
+        #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+          case 2:
+            stepper.set_z3_lock(false);
+            break;
+        #endif
       }
 
-      // we will be losing home position and need to re-home
+      // We will be losing home position and need to re-home
       do_blocking_move_to_z(z_auto_align_amplification * z_align_move + current_position[Z_AXIS]);
     }
     stepper.set_z_lock(true);
@@ -260,7 +248,7 @@ void GcodeSuite::G34() {
       stepper.set_z3_lock(true);
     #endif
 
-    // reset z position to previous position
+    // Reset z position to previous position
     do_blocking_move_to_z(z_original_position);
 
     stepper.set_z_lock(false);
@@ -273,9 +261,7 @@ void GcodeSuite::G34() {
 
     if (breakEarly) {
       #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (DEBUGGING(LEVELING)) {
-          SERIAL_ECHOLNPGM("> achieved target accuracy.");
-       }
+        if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> achieved target accuracy.");
       #endif
       break;
     }
@@ -291,7 +277,7 @@ void GcodeSuite::G34() {
     tool_change(old_tool_index, 0, NO_FETCH);
   #endif
 
-  #if HAS_LEVELING  
+  #if HAS_LEVELING
     #if ENABLED(RESTORE_LEVELING_AFTER_G34)
       set_bed_leveling_enabled(leveling_was_active);
     #endif
@@ -299,7 +285,6 @@ void GcodeSuite::G34() {
 
   // after this operation we have lost the z homing position
   set_axis_is_not_at_home(Z_AXIS);
-  
   // rehome
   gcode.G28(false);
 
@@ -310,8 +295,7 @@ void GcodeSuite::G34() {
 }
 
 /**
- * M422 - Z-Stepper automatic alignment parameter selection
- *
+ * M422: Z-Stepper automatic alignment parameter selection
  */
 void GcodeSuite::M422() {
   if (!parser.seen('A')) {
@@ -325,20 +309,20 @@ void GcodeSuite::M422() {
     return;
   }
 
-  const float x_pos = parser.floatval('X', z_auto_align_xpos[z_stepper-1]);
+  const float x_pos = parser.floatval('X', z_auto_align_xpos[z_stepper - 1]);
   if (!WITHIN(x_pos, X_MIN_POS, X_MAX_POS)) {
     SERIAL_PROTOCOLLNPGM("?(X)-Position is implausible out of limits.");
     return;
   }
 
-  const float y_pos = parser.floatval('Y', z_auto_align_ypos[z_stepper-1]);
+  const float y_pos = parser.floatval('Y', z_auto_align_ypos[z_stepper - 1]);
   if (!WITHIN(y_pos, Y_MIN_POS, Y_MAX_POS)) {
     SERIAL_PROTOCOLLNPGM("?(Y)-Position is implausible out of limits.");
     return;
   }
 
-  z_auto_align_xpos[z_stepper-1] = x_pos;
-  z_auto_align_ypos[z_stepper-1] = y_pos;
+  z_auto_align_xpos[z_stepper - 1] = x_pos;
+  z_auto_align_ypos[z_stepper - 1] = y_pos;
 }
 
 #endif // Z_STEPPER_AUTO_ALIGN

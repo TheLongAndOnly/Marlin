@@ -287,6 +287,13 @@
 
 //#define Z_LATE_ENABLE // Enable Z the last moment. Needed if your Z driver overheats.
 
+// Employ an external closed loop controller. Override pins here if needed.
+//#define EXTERNAL_CLOSED_LOOP_CONTROLLER
+#if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)
+  //#define CLOSED_LOOP_ENABLE_PIN        -1
+  //#define CLOSED_LOOP_MOVE_COMPLETE_PIN -1
+#endif
+
 /**
  * Dual Steppers / Dual Endstops
  *
@@ -342,10 +349,16 @@
   #endif
 #endif
 
-// Enable this for dual x-carriage printers.
-// A dual x-carriage design has the advantage that the inactive extruder can be parked which
-// prevents hot-end ooze contaminating the print. It also reduces the weight of each x-carriage
-// allowing faster printing speeds. Connect your X2 stepper to the first unused E plug.
+/**
+ * Dual X Carriage
+ *
+ * This setup has two X carriages that can move independently, each with its own hotend.
+ * The carriages can be used to print an object with two colors or materials, or in
+ * "duplication mode" it can print two identical or X-mirrored objects simultaneously.
+ * The inactive carriage is parked automatically to prevent oozing.
+ * X1 is the left carriage, X2 the right. They park and home at opposite ends of the X axis.
+ * By default the X2 stepper is assigned to the first unused E plug on the board.
+ */
 //#define DUAL_X_CARRIAGE
 #if ENABLED(DUAL_X_CARRIAGE)
   #define X1_MIN_POS X_MIN_POS  // set minimum to ensure first x-carriage doesn't hit the parked second X-carriage
@@ -404,21 +417,20 @@
 // allow automatic alignment of z steppers for dual z stepper configuration and movable probe
 #define Z_STEPPER_AUTO_ALIGN
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
-  // define probe x-position for Z1, Z2, Z3
+  // Define probe x-position for Z1, Z2, Z3
   #define Z_STEPPER_ALIGN_XPOS {150, 75,  225}
   #define Z_STEPPER_ALIGN_YPOS { 75, 225, 225}
-  // set number of iterations to align
+  // Set number of iterations to align
   #define Z_STEPPER_ALIGN_ITERATIONS 6
-  // enable to restore leveling setup after operation
+  // Enable to restore leveling setup after operation
   #define RESTORE_LEVELING_AFTER_G34
-  // amount of z increase prior to moving probe
+  // Amount of z increase prior to moving probe
   #define Z_STEPPER_ALIGN_SAFEHEIGHT 5
   // Use the amplification factor to de-/increase correction step.
   // In case the stepper (spindle) position is further out than the test point
-  // Use a value > 1. Careful this might lead to instabilities
+  // Use a value > 1. NOTE: This may cause instability
   #define Z_STEPPER_ALIGN_AMP 1.0
-  // Define a stop criteria. If the accuracy is better than the defined value
-  // we stop iterating early
+  // Stop criterion. If the accuracy is better than this stop iterating early
   #define Z_STEPPER_ALIGN_ACC 0.02
 #endif
 
@@ -493,7 +505,7 @@
 
 /**
  * Custom Microstepping PIN settings
- * Allows additional flexibility to defined the proper PIN settings for different 
+ * Allows additional flexibility to defined the proper PIN settings for different
  * stepper drivers. Defaults are normally applied in Conditional_post.h
  * Uncomment MICROSTEP_CUSTOM to enable manual definition and ensure all microstep modes selected below
  * are defined. At max, 3 MS PINS are supported, if less are defined, the last settings are ignoreds

@@ -1538,16 +1538,10 @@ uint32_t Stepper::stepper_block_phase_isr() {
 
         #if ENABLED(LIN_ADVANCE)
           if (LA_use_advance_lead) {
-            // Wake up eISR on first acceleration loop and fire ISR if final adv_rate is reached
-            if (step_events_completed == steps_per_isr || (LA_steps && LA_isr_rate != current_block->advance_speed)) {
-              nextAdvanceISR = 0;
-              LA_isr_rate = current_block->advance_speed;
-            }
+            // Fire ISR if final adv_rate is reached
+            if (LA_steps && LA_isr_rate != current_block->advance_speed) nextAdvanceISR = 0;
           }
-          else {
-            LA_isr_rate = LA_ADV_NEVER;
-            if (LA_steps) nextAdvanceISR = 0;
-          }
+          else if (LA_steps) nextAdvanceISR = 0;
         #endif // LIN_ADVANCE
       }
       // Are we in Deceleration phase ?
@@ -1589,17 +1583,13 @@ uint32_t Stepper::stepper_block_phase_isr() {
 
         #if ENABLED(LIN_ADVANCE)
           if (LA_use_advance_lead) {
-            if (step_events_completed <= decelerate_after + steps_per_isr ||
-               (LA_steps && LA_isr_rate != current_block->advance_speed)
-            ) {
-              nextAdvanceISR = 0; // Wake up eISR on first deceleration loop
+            // Wake up eISR on first deceleration loop and fire ISR if final adv_rate is reached
+            if (step_events_completed <= decelerate_after + steps_per_isr || (LA_steps && LA_isr_rate != current_block->advance_speed)) {
+              nextAdvanceISR = 0;
               LA_isr_rate = current_block->advance_speed;
             }
           }
-          else {
-            LA_isr_rate = LA_ADV_NEVER;
-            if (LA_steps) nextAdvanceISR = 0;
-          }
+          else if (LA_steps) nextAdvanceISR = 0;
         #endif // LIN_ADVANCE
       }
       // We must be in cruise phase otherwise
@@ -1779,7 +1769,11 @@ uint32_t Stepper::stepper_block_phase_isr() {
         if ((LA_use_advance_lead = current_block->use_advance_lead)) {
           LA_final_adv_steps = current_block->final_adv_steps;
           LA_max_adv_steps = current_block->max_adv_steps;
+          //Start the ISR
+          nextAdvanceISR = 0;
+          LA_isr_rate = current_block->advance_speed;
         }
+        else LA_isr_rate = LA_ADV_NEVER;
       #endif
 
       if (current_block->direction_bits != last_direction_bits
@@ -2618,23 +2612,23 @@ void Stepper::report_positions() {
   void Stepper::microstep_ms(const uint8_t driver, const int8_t ms1, const int8_t ms2, const int8_t ms3) {
     if (ms1 >= 0) switch (driver) {
       #if HAS_X_MICROSTEPS || HAS_X2_MICROSTEPS
-        case 0: 
-        #if HAS_X_MICROSTEPS
-          WRITE(X_MS1_PIN, ms1);
-        #endif
-        #if HAS_X2_MICROSTEPS
-          WRITE(X2_MS1_PIN, ms1);
-        #endif
+        case 0:
+          #if HAS_X_MICROSTEPS
+            WRITE(X_MS1_PIN, ms1);
+          #endif
+          #if HAS_X2_MICROSTEPS
+            WRITE(X2_MS1_PIN, ms1);
+          #endif
           break;
       #endif
       #if HAS_Y_MICROSTEPS || HAS_Y2_MICROSTEPS
         case 1:
-        #if HAS_Y_MICROSTEPS 
-          WRITE(Y_MS1_PIN, ms1);
-        #endif 
-        #if HAS_Y2_MICROSTEPS 
-          WRITE(Y2_MS1_PIN, ms1);
-        #endif 
+          #if HAS_Y_MICROSTEPS
+            WRITE(Y_MS1_PIN, ms1);
+          #endif
+          #if HAS_Y2_MICROSTEPS
+            WRITE(Y2_MS1_PIN, ms1);
+          #endif
           break;
       #endif
       #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS
@@ -2668,23 +2662,23 @@ void Stepper::report_positions() {
     }
     if (ms2 >= 0) switch (driver) {
       #if HAS_X_MICROSTEPS || HAS_X2_MICROSTEPS
-        case 0: 
-        #if HAS_X_MICROSTEPS
-          WRITE(X_MS2_PIN, ms2);
-        #endif
-        #if HAS_X2_MICROSTEPS
-          WRITE(X2_MS2_PIN, ms2);
-        #endif
+        case 0:
+          #if HAS_X_MICROSTEPS
+            WRITE(X_MS2_PIN, ms2);
+          #endif
+          #if HAS_X2_MICROSTEPS
+            WRITE(X2_MS2_PIN, ms2);
+          #endif
           break;
       #endif
       #if HAS_Y_MICROSTEPS || HAS_Y2_MICROSTEPS
         case 1:
-        #if HAS_Y_MICROSTEPS 
-          WRITE(Y_MS2_PIN, ms2);
-        #endif 
-        #if HAS_Y2_MICROSTEPS 
-          WRITE(Y2_MS2_PIN, ms2);
-        #endif 
+          #if HAS_Y_MICROSTEPS
+            WRITE(Y_MS2_PIN, ms2);
+          #endif
+          #if HAS_Y2_MICROSTEPS
+            WRITE(Y2_MS2_PIN, ms2);
+          #endif
           break;
       #endif
       #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS
@@ -2718,23 +2712,23 @@ void Stepper::report_positions() {
     }
     if (ms3 >= 0) switch (driver) {
       #if HAS_X_MICROSTEPS || HAS_X2_MICROSTEPS
-        case 0: 
-        #if HAS_X_MICROSTEPS && PIN_EXISTS(X_MS3)
-          WRITE(X_MS3_PIN, ms3);
-        #endif
-        #if HAS_X2_MICROSTEPS && PIN_EXISTS(X2_MS3)
-          WRITE(X2_MS3_PIN, ms3);
-        #endif
+        case 0:
+          #if HAS_X_MICROSTEPS && PIN_EXISTS(X_MS3)
+            WRITE(X_MS3_PIN, ms3);
+          #endif
+          #if HAS_X2_MICROSTEPS && PIN_EXISTS(X2_MS3)
+            WRITE(X2_MS3_PIN, ms3);
+          #endif
           break;
       #endif
       #if HAS_Y_MICROSTEPS || HAS_Y2_MICROSTEPS
         case 1:
-        #if HAS_Y_MICROSTEPS && PIN_EXISTS(Y_MS3)
-          WRITE(Y_MS3_PIN, ms3);
-        #endif 
-        #if HAS_Y2_MICROSTEPS && PIN_EXISTS(Y2_MS3)
-          WRITE(Y2_MS3_PIN, ms3);
-        #endif 
+          #if HAS_Y_MICROSTEPS && PIN_EXISTS(Y_MS3)
+            WRITE(Y_MS3_PIN, ms3);
+          #endif
+          #if HAS_Y2_MICROSTEPS && PIN_EXISTS(Y2_MS3)
+            WRITE(Y2_MS3_PIN, ms3);
+          #endif
           break;
       #endif
       #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS

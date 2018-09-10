@@ -233,10 +233,8 @@ void I2CPositionEncoder::set_homed() {
 }
 
 void I2CPositionEncoder::set_unhomed() {
-
   zeroOffset = 0;
-  homed=false;
-  trusted=false;
+  homed = trusted = false;
 
   #ifdef I2CPE_DEBUG
     SERIAL_ECHO(axis_codes[encoderAxis]);

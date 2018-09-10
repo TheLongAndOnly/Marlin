@@ -103,8 +103,9 @@
 //
 // Extension Board V2
 // http://doku.radds.org/dokumentation/extension-board
-#define HAS_RADDS_EXTENSION
-#if ENABLED(HAS_RADDS_EXTENSION)
+//
+#define RADDS_EXTENSION
+#if ENABLED(RADDS_EXTENSION)
   #define RADDS_EXT_USE_Z3
   #if ENABLED(RADDS_EXT_USE_Z3)
     #define Z3_STEP_PIN        35

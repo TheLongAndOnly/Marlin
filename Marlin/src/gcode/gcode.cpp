@@ -257,11 +257,11 @@ void GcodeSuite::process_parsed_command(
       #endif
 
       #if ENABLED(Z_STEPPER_AUTO_ALIGN)
-        case 34: G34(); break;
+        case 34: G34(); break;                                    // G34: Z Stepper automatic alignment using probe
       #endif
 
       #if ENABLED(G38_PROBE_TARGET)
-        case 38:                                                  // G38.2 & G38.3
+        case 38:                                                  // G38.2 & G38.3: Probe towards target
           if (parser.subcode == 2 || parser.subcode == 3)
             G38(parser.subcode == 2);
           break;
@@ -294,6 +294,10 @@ void GcodeSuite::process_parsed_command(
         case 3: M3_M4(true ); break;                              // M3: turn spindle/laser on, set laser/spindle power/speed, set rotation direction CW
         case 4: M3_M4(false); break;                              // M4: turn spindle/laser on, set laser/spindle power/speed, set rotation direction CCW
         case 5: M5(); break;                                      // M5 - turn spindle/laser off
+      #endif
+
+      #if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)
+        case 12: M12(); break;                                    // M12: Synchronize and optionally force a CLC set
       #endif
 
       case 17: M17(); break;                                      // M17: Enable all stepper motors
@@ -668,7 +672,7 @@ void GcodeSuite::process_parsed_command(
       #endif
 
       #if ENABLED(Z_STEPPER_AUTO_ALIGN)
-        case 422: M422(); break;
+        case 422: M422(); break;                                  // M422: Set Z Stepper automatic alignment position using probe
       #endif
 
       case 999: M999(); break;                                    // M999: Restart after being Stopped

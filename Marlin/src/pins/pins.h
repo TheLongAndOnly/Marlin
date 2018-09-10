@@ -960,6 +960,8 @@
     #define _Z2_PINS __Z2_PINS
   #endif
   #define Z3_E_INDEX INCREMENT(Z2_E_INDEX)
+#else
+  #define Z3_E_INDEX Z2_E_INDEX
 #endif
 
 #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
