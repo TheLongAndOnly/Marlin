@@ -1082,6 +1082,9 @@
   #ifndef MSG_FILAMENT_CHANGE_INSERT_1
     #define MSG_FILAMENT_CHANGE_INSERT_1        _UxGT("Insert and Click")
   #endif
+  #ifndef MSG_FILAMENT_CHANGE_HEAT_1
+    #define MSG_FILAMENT_CHANGE_HEAT_1          _UxGT("Click to heat")
+  #endif
   #ifndef MSG_FILAMENT_CHANGE_HEATING_1
     #define MSG_FILAMENT_CHANGE_HEATING_1       _UxGT("Heating...")
   #endif
