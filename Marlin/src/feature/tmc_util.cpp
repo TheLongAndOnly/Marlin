@@ -228,7 +228,7 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
       , ext_Y2[] PROGMEM = "Y2"
     #endif
-    #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
+    #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2[] PROGMEM = "Z2"
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
@@ -258,7 +258,7 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
       , ext_Y2
     #endif
-    #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
+    #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
