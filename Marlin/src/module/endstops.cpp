@@ -67,9 +67,6 @@ Endstops::esbits_t Endstops::live_state = 0;
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
   float Endstops::z3_endstop_adj;
 #endif
-#if ENABLED(Z_TRIPLE_ENDSTOPS)
-  float Endstops::z_endstop_adj2;
-#endif
 
 /**
  * Class and Instance Methods

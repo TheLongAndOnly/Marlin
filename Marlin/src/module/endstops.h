@@ -70,9 +70,6 @@ class Endstops {
       #if ENABLED(Z_TRIPLE_ENDSTOPS)
         static float z3_endstop_adj;
       #endif
-      #if ENABLED(Z_TRIPLE_ENDSTOPS)
-        static float z_endstop_adj2;
-      #endif
     #else
       typedef uint8_t esbits_t;
     #endif

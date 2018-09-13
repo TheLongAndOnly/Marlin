@@ -607,12 +607,6 @@ void MarlinSettings::postprocess() {
         EEPROM_WRITE(dummy);
       #endif
 
-      #if ENABLED(Z_TRIPLE_ENDSTOPS)
-        EEPROM_WRITE(endstops.z_endstop_adj2);   // 1 float
-      #else
-        EEPROM_WRITE(dummy);
-      #endif
-
     #endif
 
     _FIELD_TEST(lcd_preheat_hotend_temp);
@@ -1233,11 +1227,6 @@ void MarlinSettings::postprocess() {
         #endif
         #if ENABLED(Z_TRIPLE_ENDSTOPS)
           EEPROM_READ(endstops.z3_endstop_adj); // 1 float
-        #else
-          EEPROM_READ(dummy);
-        #endif
-        #if ENABLED(Z_TRIPLE_ENDSTOPS)
-          EEPROM_READ(endstops.z_endstop_adj2); // 1 float
         #else
           EEPROM_READ(dummy);
         #endif
@@ -1941,22 +1930,6 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         #endif
       );
       endstops.z3_endstop_adj = (
-        #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
-          Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
-        #else
-          0
-        #endif
-      );
-    #endif
-    #if ENABLED(Z_TRIPLE_ENDSTOPS)
-      endstops.z_endstop_adj = (
-        #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
-          Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
-        #else
-          0
-        #endif
-      );
-      endstops.z_endstop_adj2 = (
         #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
           Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
         #else

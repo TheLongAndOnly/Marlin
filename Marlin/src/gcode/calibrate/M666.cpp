@@ -102,7 +102,7 @@
     #endif
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
       if (parser.seen('Z2')) {
-        endstops.z_endstop_adj2 = parser.value_linear_units();
+        endstops.z3_endstop_adj = parser.value_linear_units();
         report = false;
       }
     #endif
