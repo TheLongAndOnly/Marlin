@@ -100,51 +100,65 @@
   #define E2_CS_PIN        35
 #endif
 
-//
-// Extension Board V2
-// http://doku.radds.org/dokumentation/extension-board
-//#define HAS_RADDS_EXTENSION
-#if ENABLED(HAS_RADDS_EXTENSION)
-  //#define RADDS_EXT_USE_Z3
-  #if ENABLED(RADDS_EXT_USE_Z3)
-    #define Z3_STEP_PIN        35
-    #define Z3_DIR_PIN         33
-    #define Z3_ENABLE_PIN      37
-    #ifndef Z3_CS_PIN
-      #define Z3_CS_PIN         6 // does not seem to make sense
+/**
+ * RADDS Extension Board V2 / V3
+ * http://doku.radds.org/dokumentation/extension-board
+ */
+//#define RADDS_EXTENSION 2
+#if RADDS_EXTENSION >= 2
+  #define E3_DIR_PIN       33
+  #define E3_STEP_PIN      35
+  #define E3_ENABLE_PIN    37
+  #ifndef E3_CS_PIN
+    #define E3_CS_PIN       6
+  #endif
+
+  #if RADDS_EXTENSION == 3
+
+    #define E4_DIR_PIN     27
+    #define E4_STEP_PIN    29
+    #define E4_ENABLE_PIN  31
+    #ifndef E4_CS_PIN
+      #define E4_CS_PIN    39
     #endif
 
-    #define Z3_MS1_PIN         67
-    #define Z3_MS2_PIN         68
-    #define Z3_MS3_PIN         69
+    #define E5_DIR_PIN     66
+    #define E5_STEP_PIN    67
+    #define E5_ENABLE_PIN  68
+    #ifndef E5_CS_PIN
+      #define E5_CS_PIN     6
+    #endif
+
+    #define RADDS_EXT_MSI_PIN 69
+
+    #define MAX_EXTRUDERS 6
+    #define BOARD_INIT() OUT_WRITE(RADDS_EXT_VDD_PIN, HIGH)
+
   #else
-    #define E3_STEP_PIN        35
-    #define E3_DIR_PIN         33
-    #define E3_ENABLE_PIN      37
-    #ifndef E3_CS_PIN
-      #define E3_CS_PIN         6
+
+    #define E4_DIR_PIN     27
+    #define E4_STEP_PIN    29
+    #define E4_ENABLE_PIN  31
+    #ifndef E4_CS_PIN
+      #define E4_CS_PIN    39
     #endif
 
-    #define E3_MS1_PIN         67
-    #define E3_MS2_PIN         68
-    #define E3_MS3_PIN         69
+    // E3 and E4 share the same MSx pins
+    #define E3_MS1_PIN     67
+    #define E4_MS1_PIN     67
+    #define E3_MS2_PIN     68
+    #define E4_MS2_PIN     68
+    #define E3_MS3_PIN     69
+    #define E4_MS3_PIN     69
+
+    #define RADDS_EXT_VDD2_PIN 66
+
+    #define BOARD_INIT() do{ OUT_WRITE(RADDS_EXT_VDD_PIN, HIGH); OUT_WRITE(RADDS_EXT_VDD2_PIN, HIGH); }while(0)
+
   #endif
 
-  #define Z2_STEP_PIN        29
-  #define Z2_DIR_PIN         27
-  #define Z2_ENABLE_PIN      31
-  #ifndef Z2_CS_PIN
-    #define Z2_CS_PIN        39
-  #endif
+  #define RADDS_EXT_VDD_PIN 25
 
-  #define Z2_MS1_PIN         67   // shared with E3_MS1_PIN
-  #define Z2_MS2_PIN         68   // shared with E3_MS2_PIN
-  #define Z2_MS3_PIN         69   // shared with E3_MS3_PIN
-
-  #define RADDS_EXT_VDD1_PIN 25
-  #define RADDS_EXT_VDD2_PIN 66
-
-  #define BOARD_INIT() OUT_WRITE(RADDS_EXT_VDD1_PIN, HIGH); OUT_WRITE(RADDS_EXT_VDD2_PIN, HIGH)
 #endif
 
 //

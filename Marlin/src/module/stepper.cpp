@@ -107,7 +107,7 @@ Stepper stepper; // Singleton
 
 // public:
 
-#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+#if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
   bool Stepper::separate_multi_axis = false;
 #endif
 
@@ -124,7 +124,7 @@ uint8_t Stepper::last_direction_bits = 0,
 
 bool Stepper::abort_current_block;
 
-#if DISABLED(MIXING_EXTRUDER)
+#if DISABLED(MIXING_EXTRUDER) && EXTRUDERS > 1
   uint8_t Stepper::last_moved_extruder = 0xFF;
 #endif
 
@@ -134,7 +134,7 @@ bool Stepper::abort_current_block;
 #if ENABLED(Y_DUAL_ENDSTOPS)
   bool Stepper::locked_Y_motor = false, Stepper::locked_Y2_motor = false;
 #endif
-#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+#if Z_MULTI_ENDSTOPS
   bool Stepper::locked_Z_motor = false, Stepper::locked_Z2_motor = false;
 #endif
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
@@ -162,8 +162,8 @@ uint32_t Stepper::advance_dividend[XYZE] = { 0 },
   int32_t Stepper::delta_error_m[MIXING_STEPPERS];
   uint32_t Stepper::advance_dividend_m[MIXING_STEPPERS],
            Stepper::advance_divisor_m;
-#else
-  int8_t Stepper::active_extruder;           // Active extruder
+#elif EXTRUDERS > 1
+  uint8_t Stepper::active_extruder;          // Active extruder
 #endif
 
 #if ENABLED(S_CURVE_ACCELERATION)
@@ -1512,16 +1512,10 @@ uint32_t Stepper::stepper_block_phase_isr() {
 
         #if ENABLED(LIN_ADVANCE)
           if (LA_use_advance_lead) {
-            // Wake up eISR on first acceleration loop and fire ISR if final adv_rate is reached
-            if (step_events_completed == steps_per_isr || (LA_steps && LA_isr_rate != current_block->advance_speed)) {
-              nextAdvanceISR = 0;
-              LA_isr_rate = current_block->advance_speed;
-            }
+            // Fire ISR if final adv_rate is reached
+            if (LA_steps && LA_isr_rate != current_block->advance_speed) nextAdvanceISR = 0;
           }
-          else {
-            LA_isr_rate = LA_ADV_NEVER;
-            if (LA_steps) nextAdvanceISR = 0;
-          }
+          else if (LA_steps) nextAdvanceISR = 0;
         #endif // LIN_ADVANCE
       }
       // Are we in Deceleration phase ?
@@ -1563,17 +1557,13 @@ uint32_t Stepper::stepper_block_phase_isr() {
 
         #if ENABLED(LIN_ADVANCE)
           if (LA_use_advance_lead) {
-            if (step_events_completed <= decelerate_after + steps_per_isr ||
-               (LA_steps && LA_isr_rate != current_block->advance_speed)
-            ) {
-              nextAdvanceISR = 0; // Wake up eISR on first deceleration loop
+            // Wake up eISR on first deceleration loop and fire ISR if final adv_rate is reached
+            if (step_events_completed <= decelerate_after + steps_per_isr || (LA_steps && LA_isr_rate != current_block->advance_speed)) {
+              nextAdvanceISR = 0;
               LA_isr_rate = current_block->advance_speed;
             }
           }
-          else {
-            LA_isr_rate = LA_ADV_NEVER;
-            if (LA_steps) nextAdvanceISR = 0;
-          }
+          else if (LA_steps) nextAdvanceISR = 0;
         #endif // LIN_ADVANCE
       }
       // We must be in cruise phase otherwise
@@ -1739,7 +1729,7 @@ uint32_t Stepper::stepper_block_phase_isr() {
           advance_dividend_m[i] = current_block->mix_steps[i] << 1;
         }
         advance_divisor_m = e_steps << 1;
-      #else
+      #elif EXTRUDERS > 1
         active_extruder = current_block->active_extruder;
       #endif
 
@@ -1753,7 +1743,11 @@ uint32_t Stepper::stepper_block_phase_isr() {
         if ((LA_use_advance_lead = current_block->use_advance_lead)) {
           LA_final_adv_steps = current_block->final_adv_steps;
           LA_max_adv_steps = current_block->max_adv_steps;
+          //Start the ISR
+          nextAdvanceISR = 0;
+          LA_isr_rate = current_block->advance_speed;
         }
+        else LA_isr_rate = LA_ADV_NEVER;
       #endif
 
       if (current_block->direction_bits != last_direction_bits
@@ -1762,7 +1756,7 @@ uint32_t Stepper::stepper_block_phase_isr() {
         #endif
       ) {
         last_direction_bits = current_block->direction_bits;
-        #if DISABLED(MIXING_EXTRUDER)
+        #if DISABLED(MIXING_EXTRUDER) && EXTRUDERS > 1
           last_moved_extruder = active_extruder;
         #endif
         set_directions();
@@ -1966,7 +1960,7 @@ void Stepper::init() {
   #endif
   #if HAS_Z_DIR
     Z_DIR_INIT;
-    #if (ENABLED(Z_DUAL_STEPPER_DRIVERS) || ENABLED(Z_TRIPLE_STEPPER_DRIVERS)) && HAS_Z2_DIR
+    #if Z_MULTI_STEPPER_DRIVERS && HAS_Z2_DIR
       Z2_DIR_INIT;
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS) && HAS_Z3_DIR
@@ -2009,7 +2003,7 @@ void Stepper::init() {
   #if HAS_Z_ENABLE
     Z_ENABLE_INIT;
     if (!Z_ENABLE_ON) Z_ENABLE_WRITE(HIGH);
-    #if (ENABLED(Z_DUAL_STEPPER_DRIVERS) || ENABLED(Z_TRIPLE_STEPPER_DRIVERS)) && HAS_Z2_ENABLE
+    #if Z_MULTI_STEPPER_DRIVERS && HAS_Z2_ENABLE
       Z2_ENABLE_INIT;
       if (!Z_ENABLE_ON) Z2_ENABLE_WRITE(HIGH);
     #endif
@@ -2068,7 +2062,7 @@ void Stepper::init() {
   #endif
 
   #if HAS_Z_STEP
-    #if ENABLED(Z_DUAL_STEPPER_DRIVERS) || ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+    #if Z_MULTI_STEPPER_DRIVERS
       Z2_STEP_INIT;
       Z2_STEP_WRITE(INVERT_Z_STEP_PIN);
     #endif

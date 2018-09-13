@@ -669,8 +669,8 @@
   #define MAX_EXTRUDERS 5
 #endif
 
-#ifndef MAX_SERVOS
-  #define MAX_SERVOS 4
+#ifndef NUM_SERVO_PLUGS
+  #define NUM_SERVO_PLUGS 4
 #endif
 
 //
@@ -940,7 +940,7 @@
 #endif
 
 // The Z2 axis, if any, should be the next open extruder port
-#if ENABLED(Z_DUAL_STEPPER_DRIVERS) || ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+#if Z_MULTI_STEPPER_DRIVERS
   #ifndef Z2_STEP_PIN
     #define Z2_STEP_PIN   _EPIN(Z2_E_INDEX, STEP)
     #define Z2_DIR_PIN    _EPIN(Z2_E_INDEX, DIR)
@@ -960,6 +960,8 @@
     #define _Z2_PINS __Z2_PINS
   #endif
   #define Z3_E_INDEX INCREMENT(Z2_E_INDEX)
+#else
+  #define Z3_E_INDEX Z2_E_INDEX
 #endif
 
 #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)

@@ -56,13 +56,16 @@ Endstops::esbits_t Endstops::live_state = 0;
 
 // Initialized by settings.load()
 #if ENABLED(X_DUAL_ENDSTOPS)
-  float Endstops::x_endstop_adj;
+  float Endstops::x2_endstop_adj;
 #endif
 #if ENABLED(Y_DUAL_ENDSTOPS)
-  float Endstops::y_endstop_adj;
+  float Endstops::y2_endstop_adj;
 #endif
-#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
-  float Endstops::z_endstop_adj;
+#if Z_MULTI_ENDSTOPS
+  float Endstops::z2_endstop_adj;
+#endif
+#if ENABLED(Z_TRIPLE_ENDSTOPS)
+  float Endstops::z3_endstop_adj;
 #endif
 #if ENABLED(Z_TRIPLE_ENDSTOPS)
   float Endstops::z_endstop_adj2;
@@ -521,7 +524,7 @@ void Endstops::update() {
   #endif
 
   #if HAS_Z_MIN
-    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #if Z_MULTI_ENDSTOPS
       UPDATE_ENDSTOP_BIT(Z, MIN);
       #if HAS_Z2_MIN
         UPDATE_ENDSTOP_BIT(Z2, MIN);
@@ -549,7 +552,7 @@ void Endstops::update() {
 
   #if HAS_Z_MAX
     // Check both Z dual endstops
-    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #if Z_MULTI_ENDSTOPS
       UPDATE_ENDSTOP_BIT(Z, MAX);
       #if HAS_Z2_MAX
         UPDATE_ENDSTOP_BIT(Z2, MAX);

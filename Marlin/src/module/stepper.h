@@ -234,7 +234,7 @@ class Stepper {
 
   public:
 
-    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
       static bool separate_multi_axis;
     #endif
 
@@ -254,8 +254,11 @@ class Stepper {
 
     static bool abort_current_block;        // Signals to the stepper that current block should be aborted
 
-    #if DISABLED(MIXING_EXTRUDER)
-      static uint8_t last_moved_extruder;   // Last-moved extruder, as set when the last movement was fetched from planner
+    // Last-moved extruder, as set when the last movement was fetched from planner
+    #if EXTRUDERS < 2
+      static constexpr uint8_t last_moved_extruder = 0;
+    #elif DISABLED(MIXING_EXTRUDER)
+      static uint8_t last_moved_extruder;
     #endif
 
     #if ENABLED(X_DUAL_ENDSTOPS)
@@ -264,7 +267,7 @@ class Stepper {
     #if ENABLED(Y_DUAL_ENDSTOPS)
       static bool locked_Y_motor, locked_Y2_motor;
     #endif
-    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #if Z_MULTI_ENDSTOPS
       static bool locked_Z_motor, locked_Z2_motor;
     #endif
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
@@ -296,8 +299,10 @@ class Stepper {
                       advance_divisor_m;
       #define MIXING_STEPPERS_LOOP(VAR) \
         for (uint8_t VAR = 0; VAR < MIXING_STEPPERS; VAR++)
+    #elif EXTRUDERS > 1
+      static uint8_t active_extruder;
     #else
-      static int8_t active_extruder;      // Active extruder
+      static constexpr uint8_t active_extruder = 0;
     #endif
 
     #if ENABLED(S_CURVE_ACCELERATION)
@@ -388,7 +393,7 @@ class Stepper {
     // The extruder associated to the last movement
     FORCE_INLINE static uint8_t movement_extruder() {
       return
-        #if ENABLED(MIXING_EXTRUDER)
+        #if ENABLED(MIXING_EXTRUDER) || EXTRUDERS < 2
           0
         #else
           last_moved_extruder
@@ -413,7 +418,7 @@ class Stepper {
       static void microstep_readings();
     #endif
 
-    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #if ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
       FORCE_INLINE static void set_separate_multi_axis(const bool state) { separate_multi_axis = state; }
     #endif
     #if ENABLED(X_DUAL_ENDSTOPS)
@@ -424,7 +429,7 @@ class Stepper {
       FORCE_INLINE static void set_y_lock(const bool state) { locked_Y_motor = state; }
       FORCE_INLINE static void set_y2_lock(const bool state) { locked_Y2_motor = state; }
     #endif
-    #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #if Z_MULTI_ENDSTOPS
       FORCE_INLINE static void set_z_lock(const bool state) { locked_Z_motor = state; }
       FORCE_INLINE static void set_z2_lock(const bool state) { locked_Z2_motor = state; }
     #endif
