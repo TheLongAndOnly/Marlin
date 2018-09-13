@@ -120,9 +120,6 @@
       #if ENABLED(Z_TRIPLE_ENDSTOPS)
         SERIAL_ECHOPAIR(" Z3:", endstops.z3_endstop_adj);
       #endif
-      #if ENABLED(Z_TRIPLE_ENDSTOPS)
-        SERIAL_ECHOPAIR(" Z2", endstops.z_endstop_adj2);
-      #endif
       SERIAL_EOL();
     }
   }
