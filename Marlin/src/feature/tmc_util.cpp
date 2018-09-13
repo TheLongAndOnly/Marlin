@@ -221,12 +221,35 @@ bool report_tmc_status = false;
 #endif // MONITOR_DRIVER_STATUS
 
 void _tmc_say_axis(const TMC_AxisEnum axis) {
-  static const char ext_X[]  PROGMEM = "X",  ext_Y[]  PROGMEM = "Y",  ext_Z[]  PROGMEM = "Z",
-                    ext_X2[] PROGMEM = "X2", ext_Y2[] PROGMEM = "Y2", ext_Z2[] PROGMEM = "Z2",
-                    ext_Z3[] PROGMEM = "Z3",
-                    ext_E0[] PROGMEM = "E0", ext_E1[] PROGMEM = "E1",
-                    ext_E2[] PROGMEM = "E2", ext_E3[] PROGMEM = "E3",
-                    ext_E4[] PROGMEM = "E4";
+  static const char ext_X[] PROGMEM = "X", ext_Y[] PROGMEM = "Y", ext_Z[] PROGMEM = "Z",
+    #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(X_DUAL_STEPPER_DRIVERS)
+      , ext_X2[] PROGMEM = "X2"
+    #endif
+    #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
+      , ext_Y2[] PROGMEM = "Y2"
+    #endif
+    #if Z_MULTI_STEPPER_DRIVERS
+      , ext_Z2[] PROGMEM = "Z2"
+    #endif
+    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+      , ext_Z3[] PROGMEM = "Z3"
+    #endif
+    #if E_STEPPERS
+      , ext_E0[] PROGMEM = "E0"
+      #if E_STEPPERS > 1
+        , ext_E1[] PROGMEM = "E1"
+        #if E_STEPPERS > 2
+          , ext_E2[] PROGMEM = "E2"
+          #if E_STEPPERS > 3
+            , ext_E3[] PROGMEM = "E3"
+            #if E_STEPPERS > 4
+              , ext_E4[] PROGMEM = "E4"
+            #endif
+          #endif
+        #endif
+      #endif
+    #endif
+
   static const char* const tmc_axes[] PROGMEM = {
     ext_X, ext_Y, ext_Z
     #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(X_DUAL_STEPPER_DRIVERS)
@@ -235,21 +258,23 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
       , ext_Y2
     #endif
-    #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
+    #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2
     #endif
     #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
       , ext_Z3
     #endif
-    , ext_E0
-    #if E_STEPPERS > 1
-      , ext_E1
-      #if E_STEPPERS > 2
-        , ext_E2
-        #if E_STEPPERS > 3
-          , ext_E3
-          #if E_STEPPERS > 4
-            , ext_E4
+    #if E_STEPPERS
+      , ext_E0
+      #if E_STEPPERS > 1
+        , ext_E1
+        #if E_STEPPERS > 2
+          , ext_E2
+          #if E_STEPPERS > 3
+            , ext_E3
+            #if E_STEPPERS > 4
+              , ext_E4
+            #endif
           #endif
         #endif
       #endif

@@ -37,7 +37,7 @@
  */
 
 // Change EEPROM version if the structure changes
-#define EEPROM_VERSION "V56"
+#define EEPROM_VERSION "V57"
 #define EEPROM_OFFSET 100
 
 // Check the integrity of data offsets.
@@ -181,7 +181,7 @@ typedef struct SettingsDataStruct {
   //
   // SERVO_ANGLES
   //
-  uint16_t servo_angles[MAX_SERVOS][2];                 // M281 P L U
+  uint16_t servo_angles[NUM_SERVO_PLUGS][2];                 // M281 P L U
 
   //
   // DELTA / [XYZ]_DUAL_ENDSTOPS
@@ -194,12 +194,12 @@ typedef struct SettingsDataStruct {
           delta_segments_per_second,                    // M665 S
           delta_calibration_radius,                     // M665 B
           delta_tower_angle_trim[ABC];                  // M665 XYZ
-  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
-    float x_endstop_adj,                                // M666 X
-          y_endstop_adj,                                // M666 Y
-          z_endstop_adj;                                // M666 Z
+  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
+    float x2_endstop_adj,                                // M666 X
+          y2_endstop_adj,                                // M666 Y
+          z2_endstop_adj;                                // M666 Z
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
-      float z_endstop_adj2;                             // M666 Z
+      float z3_endstop_adj;                             // M666 Z
     #endif
   #endif
 
@@ -257,7 +257,7 @@ typedef struct SettingsDataStruct {
   //
   // LIN_ADVANCE
   //
-  float planner_extruder_advance_K;                     // M900 K    planner.extruder_advance_K
+  float planner_extruder_advance_K[EXTRUDERS];          // M900 K  planner.extruder_advance_K
 
   //
   // HAS_MOTOR_CURRENT_PWM
@@ -548,7 +548,7 @@ void MarlinSettings::postprocess() {
       #if ENABLED(SWITCHING_EXTRUDER)
         constexpr uint16_t sesa[][2] = SWITCHING_EXTRUDER_SERVO_ANGLES;
       #endif
-      constexpr uint16_t servo_angles[MAX_SERVOS][2] = {
+      constexpr uint16_t servo_angles[NUM_SERVO_PLUGS][2] = {
         #if ENABLED(SWITCHING_EXTRUDER)
           [SWITCHING_EXTRUDER_SERVO_NR] = { sesa[0], sesa[1] }
           #if EXTRUDERS > 3
@@ -577,32 +577,32 @@ void MarlinSettings::postprocess() {
       EEPROM_WRITE(delta_calibration_radius);  // 1 float
       EEPROM_WRITE(delta_tower_angle_trim);    // 3 floats
 
-    #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+    #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
 
-      _FIELD_TEST(x_endstop_adj);
+      _FIELD_TEST(x2_endstop_adj);
 
       // Write dual endstops in X, Y, Z order. Unused = 0.0
       dummy = 0;
       #if ENABLED(X_DUAL_ENDSTOPS)
-        EEPROM_WRITE(endstops.x_endstop_adj);   // 1 float
+        EEPROM_WRITE(endstops.x2_endstop_adj);   // 1 float
       #else
         EEPROM_WRITE(dummy);
       #endif
 
       #if ENABLED(Y_DUAL_ENDSTOPS)
-        EEPROM_WRITE(endstops.y_endstop_adj);   // 1 float
+        EEPROM_WRITE(endstops.y2_endstop_adj);   // 1 float
       #else
         EEPROM_WRITE(dummy);
       #endif
 
-      #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
-        EEPROM_WRITE(endstops.z_endstop_adj);   // 1 float
+      #if Z_MULTI_ENDSTOPS
+        EEPROM_WRITE(endstops.z2_endstop_adj);   // 1 float
       #else
         EEPROM_WRITE(dummy);
       #endif
 
       #if ENABLED(Z_TRIPLE_ENDSTOPS)
-        EEPROM_WRITE(endstops.z_endstop_adj2);   // 1 float
+        EEPROM_WRITE(endstops.z3_endstop_adj);   // 1 float
       #else
         EEPROM_WRITE(dummy);
       #endif
@@ -890,14 +890,13 @@ void MarlinSettings::postprocess() {
     //
     // Linear Advance
     //
-
     _FIELD_TEST(planner_extruder_advance_K);
 
     #if ENABLED(LIN_ADVANCE)
-      EEPROM_WRITE(planner.extruder_advance_K);
+      LOOP_L_N(i, EXTRUDERS) EEPROM_WRITE(planner.extruder_advance_K[i]);
     #else
       dummy = 0;
-      EEPROM_WRITE(dummy);
+      LOOP_L_N(i, EXTRUDERS) EEPROM_WRITE(dummy);
     #endif
 
     _FIELD_TEST(motor_current_setting);
@@ -1187,7 +1186,7 @@ void MarlinSettings::postprocess() {
       // SERVO_ANGLES
       //
       #if !HAS_SERVOS || DISABLED(EDITABLE_SERVO_ANGLES)
-        uint16_t servo_angles[MAX_SERVOS][2];
+        uint16_t servo_angles[NUM_SERVO_PLUGS][2];
       #endif
       EEPROM_READ(servo_angles);
 
@@ -1207,27 +1206,27 @@ void MarlinSettings::postprocess() {
         EEPROM_READ(delta_calibration_radius);  // 1 float
         EEPROM_READ(delta_tower_angle_trim);    // 3 floats
 
-      #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+      #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
 
-        _FIELD_TEST(x_endstop_adj);
+        _FIELD_TEST(x2_endstop_adj);
 
         #if ENABLED(X_DUAL_ENDSTOPS)
-          EEPROM_READ(endstops.x_endstop_adj);  // 1 float
+          EEPROM_READ(endstops.x2_endstop_adj);  // 1 float
         #else
           EEPROM_READ(dummy);
         #endif
         #if ENABLED(Y_DUAL_ENDSTOPS)
-          EEPROM_READ(endstops.y_endstop_adj);  // 1 float
+          EEPROM_READ(endstops.y2_endstop_adj);  // 1 float
         #else
           EEPROM_READ(dummy);
         #endif
-        #if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
-          EEPROM_READ(endstops.z_endstop_adj); // 1 float
+        #if Z_MULTI_ENDSTOPS
+          EEPROM_READ(endstops.z2_endstop_adj); // 1 float
         #else
           EEPROM_READ(dummy);
         #endif
         #if ENABLED(Z_TRIPLE_ENDSTOPS)
-          EEPROM_READ(endstops.z_endstop_adj2); // 1 float
+          EEPROM_READ(endstops.z3_endstop_adj); // 1 float
         #else
           EEPROM_READ(dummy);
         #endif
@@ -1504,14 +1503,15 @@ void MarlinSettings::postprocess() {
       //
       // Linear Advance
       //
-
       _FIELD_TEST(planner_extruder_advance_K);
 
-      #if ENABLED(LIN_ADVANCE)
-        EEPROM_READ(planner.extruder_advance_K);
-      #else
-        EEPROM_READ(dummy);
-      #endif
+      LOOP_L_N(i, EXTRUDERS) {
+        #if ENABLED(LIN_ADVANCE)
+          EEPROM_READ(planner.extruder_advance_K[i]);
+        #else
+          EEPROM_READ(dummy);
+        #endif
+      }
 
       //
       // Motor Current PWM
@@ -1893,10 +1893,10 @@ void MarlinSettings::reset(PORTARG_SOLO) {
     delta_calibration_radius = DELTA_CALIBRATION_RADIUS;
     COPY(delta_tower_angle_trim, dta);
 
-  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+  #elif ENABLED(X_DUAL_ENDSTOPS) || ENABLED(Y_DUAL_ENDSTOPS) || Z_MULTI_ENDSTOPS
 
     #if ENABLED(X_DUAL_ENDSTOPS)
-      endstops.x_endstop_adj = (
+      endstops.x2_endstop_adj = (
         #ifdef X_DUAL_ENDSTOPS_ADJUSTMENT
           X_DUAL_ENDSTOPS_ADJUSTMENT
         #else
@@ -1905,7 +1905,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       );
     #endif
     #if ENABLED(Y_DUAL_ENDSTOPS)
-      endstops.y_endstop_adj = (
+      endstops.y2_endstop_adj = (
         #ifdef Y_DUAL_ENDSTOPS_ADJUSTMENT
           Y_DUAL_ENDSTOPS_ADJUSTMENT
         #else
@@ -1914,23 +1914,22 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       );
     #endif
     #if ENABLED(Z_DUAL_ENDSTOPS)
-      endstops.z_endstop_adj = (
+      endstops.z2_endstop_adj = (
         #ifdef Z_DUAL_ENDSTOPS_ADJUSTMENT
           Z_DUAL_ENDSTOPS_ADJUSTMENT
         #else
           0
         #endif
       );
-    #endif
-    #if ENABLED(Z_TRIPLE_ENDSTOPS)
-      endstops.z_endstop_adj = (
+    #elif ENABLED(Z_TRIPLE_ENDSTOPS)
+      endstops.z2_endstop_adj = (
         #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
           Z_TRIPLE_ENDSTOPS_ADJUSTMENT2
         #else
           0
         #endif
       );
-      endstops.z_endstop_adj2 = (
+      endstops.z3_endstop_adj = (
         #ifdef Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
           Z_TRIPLE_ENDSTOPS_ADJUSTMENT3
         #else
@@ -2006,7 +2005,7 @@ void MarlinSettings::reset(PORTARG_SOLO) {
   reset_stepper_drivers();
 
   #if ENABLED(LIN_ADVANCE)
-    planner.extruder_advance_K = LIN_ADVANCE_K;
+    LOOP_L_N(i, EXTRUDERS) planner.extruder_advance_K[i] = LIN_ADVANCE_K;
   #endif
 
   #if HAS_MOTOR_CURRENT_PWM
@@ -2440,13 +2439,17 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       CONFIG_ECHO_START;
       SERIAL_ECHOPGM_P(port, "  M666");
       #if ENABLED(X_DUAL_ENDSTOPS)
-        SERIAL_ECHOPAIR_P(port, " X", LINEAR_UNIT(endstops.x_endstop_adj));
+        SERIAL_ECHOPAIR_P(port, " X", LINEAR_UNIT(endstops.x2_endstop_adj));
       #endif
       #if ENABLED(Y_DUAL_ENDSTOPS)
-        SERIAL_ECHOPAIR_P(port, " Y", LINEAR_UNIT(endstops.y_endstop_adj));
+        SERIAL_ECHOPAIR_P(port, " Y", LINEAR_UNIT(endstops.y2_endstop_adj));
       #endif
-      #if ENABLED(Z_DUAL_ENDSTOPS)
-        SERIAL_ECHOPAIR_P(port, " Z", LINEAR_UNIT(endstops.z_endstop_adj));
+      #if ENABLED(Z_TRIPLE_ENDSTOPS)
+        SERIAL_ECHOLNPAIR_P(port, "S1 Z", LINEAR_UNIT(endstops.z2_endstop_adj));
+        CONFIG_ECHO_START;
+        SERIAL_ECHOPAIR_P(port, "  M666 S2 Z", LINEAR_UNIT(endstops.z3_endstop_adj));
+      #elif ENABLED(Z_DUAL_ENDSTOPS)
+        SERIAL_ECHOPAIR_P(port, " Z", LINEAR_UNIT(endstops.z2_endstop_adj));
       #endif
       SERIAL_EOL_P(port);
 
@@ -2785,8 +2788,16 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         CONFIG_ECHO_START;
         SERIAL_ECHOLNPGM_P(port, "Linear Advance:");
       }
+
       CONFIG_ECHO_START;
-      SERIAL_ECHOLNPAIR_P(port, "  M900 K", planner.extruder_advance_K);
+      #if EXTRUDERS < 2
+        SERIAL_ECHOLNPAIR_P(port, "  M900 K", planner.extruder_advance_K[0]);
+      #else
+        LOOP_L_N(i, EXTRUDERS) {
+          SERIAL_ECHOPAIR_P(port, "  M900 T", int(i));
+          SERIAL_ECHOLNPAIR_P(port, " K", planner.extruder_advance_K[i]);
+        }
+      #endif
     #endif
 
     #if HAS_MOTOR_CURRENT_PWM
