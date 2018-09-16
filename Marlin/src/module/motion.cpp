@@ -1329,6 +1329,16 @@ void homeaxis(const AxisEnum axis) {
     }
   #endif
 
+  #if ENABLED(Z_TRIPLE_ENDSTOPS)
+    switch (axis) {
+      #if ENABLED(Z_TRIPLE_ENDSTOPS)
+        case Z_AXIS:
+      #endif
+      stepper.set_separate_multi_axis(true);
+      default: break;
+    }
+  #endif
+
   // Fast move towards endstop until triggered
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("Home 1 Fast:");
@@ -1411,10 +1421,31 @@ void homeaxis(const AxisEnum axis) {
     #if ENABLED(Z_DUAL_ENDSTOPS)
       if (axis == Z_AXIS) {
         const float adj = ABS(endstops.z2_endstop_adj);
-        if (pos_dir ? (endstops.z2_endstop_adj > 0) : (endstops.z2_endstop_adj < 0)) stepper.set_z_lock(true); else stepper.set_z2_lock(true);
-        do_homing_move(axis, pos_dir ? -adj : adj);
+        if (adj) {
+          if (pos_dir ? (endstops.z2_endstop_adj > 0) : (endstops.z2_endstop_adj < 0)) stepper.set_z_lock(true); else stepper.set_z2_lock(true);
+          do_homing_move(axis, pos_dir ? -adj : adj);
+          stepper.set_z_lock(false);
+          stepper.set_z2_lock(false);
+        }
+
+        if (pos_dir) {
+          // normalize adj to smallest value and do the first move
+          (*lock[0])(true);
+          do_homing_move(axis, adj[1] - adj[0]);
+          // lock the second stepper for the final correction
+          (*lock[1])(true);
+          do_homing_move(axis, adj[2] - adj[1]);
+        }
+        else {
+          (*lock[2])(true);
+          do_homing_move(axis, adj[1] - adj[2]);
+          (*lock[1])(true);
+          do_homing_move(axis, adj[0] - adj[1]);
+        }
+
         stepper.set_z_lock(false);
         stepper.set_z2_lock(false);
+        stepper.set_z3_lock(false);
       }
     #endif
     #if ENABLED(Z_TRIPLE_ENDSTOPS)

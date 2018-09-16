@@ -230,9 +230,9 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #endif
     #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2[] PROGMEM = "Z2"
-    #endif
-    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-      , ext_Z3[] PROGMEM = "Z3"
+      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        , ext_Z3[] PROGMEM = "Z3"
+      #endif
     #endif
     #if E_STEPPERS
       , ext_E0[] PROGMEM = "E0"
@@ -260,9 +260,9 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #endif
     #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2
-    #endif
-    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-      , ext_Z3
+      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        , ext_Z3
+      #endif
     #endif
     #if E_STEPPERS
       , ext_E0

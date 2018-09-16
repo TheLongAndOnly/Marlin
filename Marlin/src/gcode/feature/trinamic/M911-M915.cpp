@@ -126,9 +126,6 @@ void GcodeSuite::M912() {
       #if M91x_USE(Z3)
         if (hasNone || zval == 3 || (hasZ && zval < 0)) tmc_clear_otpw(stepperZ3, TMC_Z3);
       #endif
-      #if M91x_USE(Z3)
-        if (hasNone || zval == 3 || (hasZ && zval == 10)) tmc_clear_otpw(stepperZ3, TMC_Z3);
-      #endif
     #endif
 
     #if M91x_USE_E(0) || M91x_USE_E(1) || M91x_USE_E(2) || M91x_USE_E(3) || M91x_USE_E(4)

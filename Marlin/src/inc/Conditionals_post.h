@@ -622,7 +622,7 @@
 /**
  * Z_DUAL_ENDSTOPS endstop reassignment
  */
-#if ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)
+#if Z_MULTI_ENDSTOPS
   #if Z_HOME_DIR > 0
     #if Z2_USE_ENDSTOP == _XMIN_
       #define Z2_MAX_ENDSTOP_INVERTING X_MIN_ENDSTOP_INVERTING
@@ -724,7 +724,7 @@
 
 // Is an endstop plug used for the Z2 endstop or the bed probe?
 #define IS_Z2_OR_PROBE(A,M) ( \
-     ((ENABLED(Z_DUAL_ENDSTOPS) || ENABLED(Z_TRIPLE_ENDSTOPS)) && Z2_USE_ENDSTOP == _##A##M##_) \
+     (Z_MULTI_ENDSTOPS && Z2_USE_ENDSTOP == _##A##M##_) \
   || (ENABLED(Z_MIN_PROBE_ENDSTOP) && Z_MIN_PROBE_PIN == A##_##M##_PIN ) )
 
 // Is an endstop plug used for the Z3 endstop or the bed probe?
