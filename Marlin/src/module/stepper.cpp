@@ -307,8 +307,6 @@ int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
   #define Z_APPLY_DIR(v,Q) do{ Z_DIR_WRITE(v); Z2_DIR_WRITE(v); Z3_DIR_WRITE(v); }while(0)
   #if ENABLED(Z_TRIPLE_ENDSTOPS)
     #define Z_APPLY_STEP(v,Q) TRIPLE_ENDSTOP_APPLY_STEP(Z,v)
-  #elif ENABLED(Z_STEPPER_AUTO_ALIGN)
-    #define Z_APPLY_STEP(v,Q) TRIPLE_SEPARATE_APPLY_STEP(Z,v)
   #else
     #define Z_APPLY_STEP(v,Q) do{ Z_STEP_WRITE(v); Z2_STEP_WRITE(v); Z3_STEP_WRITE(v); }while(0)
   #endif
@@ -2782,57 +2780,9 @@ void Stepper::report_positions() {
       #if HAS_E4_MICROSTEPS && PIN_EXISTS(E4_MS3)
         case 7: WRITE(E4_MS3_PIN, ms3); break;
       #endif
-    }
-    if (ms3 >= 0) switch (driver) {
-      #if HAS_X_MICROSTEPS || HAS_X2_MICROSTEPS
-        case 0:
-          #if HAS_X_MICROSTEPS && PIN_EXISTS(X_MS3)
-            WRITE(X_MS3_PIN, ms3);
-          #endif
-          #if HAS_X2_MICROSTEPS && PIN_EXISTS(X2_MS3)
-            WRITE(X2_MS3_PIN, ms3);
-          #endif
-          break;
-      #endif
-      #if HAS_Y_MICROSTEPS || HAS_Y2_MICROSTEPS
-        case 1:
-          #if HAS_Y_MICROSTEPS && PIN_EXISTS(Y_MS3)
-            WRITE(Y_MS3_PIN, ms3);
-          #endif
-          #if HAS_Y2_MICROSTEPS && PIN_EXISTS(Y2_MS3)
-            WRITE(Y2_MS3_PIN, ms3);
-          #endif
-          break;
-      #endif
-      #if HAS_Z_MICROSTEPS || HAS_Z2_MICROSTEPS || HAS_Z3_MICROSTEPS
-        case 2:
-        #if HAS_Z_MICROSTEPS && PIN_EXISTS(Z_MS3)
-          WRITE(Z_MS3_PIN, ms3);
-        #endif
-        #if HAS_Z2_MICROSTEPS && PIN_EXISTS(Z2_MS3)
-          WRITE(Z2_MS3_PIN, ms3);
-        #endif
-        #if HAS_Z3_MICROSTEPS && PIN_EXISTS(Z3_MS3)
-          WRITE(Z3_MS3_PIN, ms3);
-        #endif
-          break;
-      #endif
-      #if HAS_E0_MICROSTEPS && PIN_EXISTS(E0_MS3)
-        case 3: WRITE(E0_MS3_PIN, ms3); break;
-      #endif
-      #if HAS_E1_MICROSTEPS && PIN_EXISTS(E1_MS3)
-        case 4: WRITE(E1_MS3_PIN, ms3); break;
-      #endif
-      #if HAS_E2_MICROSTEPS && PIN_EXISTS(E2_MS3)
-        case 5: WRITE(E2_MS3_PIN, ms3); break;
-      #endif
-      #if HAS_E3_MICROSTEPS && PIN_EXISTS(E3_MS3)
-        case 6: WRITE(E3_MS3_PIN, ms3); break;
-      #endif
-      #if HAS_E4_MICROSTEPS && PIN_EXISTS(E4_MS3)
-        case 7: WRITE(E4_MS3_PIN, ms3); break;
-      #endif
-    }
+      #if HAS_E5_MICROSTEPS && PIN_EXISTS(E5_MS3)
+        case 8: WRITE(E5_MS3_PIN, ms3); break;
+      #endif    }
   }
 
   void Stepper::microstep_mode(const uint8_t driver, const uint8_t stepping_mode) {
