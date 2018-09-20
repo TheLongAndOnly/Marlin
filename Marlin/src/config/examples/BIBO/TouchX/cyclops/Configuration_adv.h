@@ -360,7 +360,6 @@
  * X1 is the left carriage, X2 the right. They park and home at opposite ends of the X axis.
  * By default the X2 stepper is assigned to the first unused E plug on the board.
  */
-//#define DUAL_X_CARRIAGE
 #if ENABLED(DUAL_X_CARRIAGE)
   #define X1_MIN_POS X_MIN_POS  // set minimum to ensure first x-carriage doesn't hit the parked second X-carriage
   #define X1_MAX_POS X_BED_SIZE // set maximum to ensure first x-carriage doesn't hit the parked second X-carriage
@@ -412,6 +411,26 @@
 
 // Enable this if X or Y can't home without homing the other axis first.
 //#define CODEPENDENT_XY_HOMING
+
+// Automatic alignment of z steppers for dual z stepper configuration and movable probe
+//#define Z_STEPPER_AUTO_ALIGN
+#if ENABLED(Z_STEPPER_AUTO_ALIGN)
+  // Define probe x-position for Z1, Z2, Z3
+  #define Z_STEPPER_ALIGN_XPOS { 10, 150, 290 }
+  #define Z_STEPPER_ALIGN_YPOS { 290, 10, 290 }
+  // Set number of iterations to align
+  #define Z_STEPPER_ALIGN_ITERATIONS 3
+  // Enable to restore leveling setup after operation
+  #define RESTORE_LEVELING_AFTER_G34
+  // Amount of z increase prior to moving probe
+  #define Z_STEPPER_ALIGN_SAFEHEIGHT 5
+  // Use the amplification factor to de-/increase correction step.
+  // In case the stepper (spindle) position is further out than the test point
+  // Use a value > 1. NOTE: This may cause instability
+  #define Z_STEPPER_ALIGN_AMP 1.0
+  // Stop criterion. If the accuracy is better than this stop iterating early
+  #define Z_STEPPER_ALIGN_ACC 0.02
+#endif
 
 // @section machine
 
@@ -481,6 +500,23 @@
  * lowest stepping frequencies.
  */
 //#define ADAPTIVE_STEP_SMOOTHING
+
+/**
+ * Custom Microstepping PIN settings
+ * Allows additional flexibility to defined the proper PIN settings for different
+ * stepper drivers. Defaults are normally applied in Conditional_post.h
+ * Uncomment MICROSTEP_CUSTOM to enable manual definition and ensure all microstep modes selected below
+ * are defined. At max, 3 MS PINS are supported, if less are defined, the last settings are ignoreds
+ */
+//#define MICROSTEP_CUSTOM
+#if ENABLED(MICROSTEP_CUSTOM)
+  #define MICROSTEP1 LOW,LOW,LOW
+  #define MICROSTEP2 HIGH,LOW,LOW
+  #define MICROSTEP4 LOW,HIGH,LOW
+  #define MICROSTEP8 HIGH,HIGH,LOW
+  #define MICROSTEP16 LOW,LOW,HIGH
+  #define MICROSTEP32 HIGH,LOW,HIGH
+#endif
 
 // Microstep setting (Only functional when stepper driver microstep pins are connected to MCU.
 #define MICROSTEP_MODES { 16, 16, 16, 16, 16, 16 } // [1,2,4,8,16]

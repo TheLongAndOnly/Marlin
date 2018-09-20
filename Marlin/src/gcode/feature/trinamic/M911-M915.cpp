@@ -345,6 +345,36 @@ void GcodeSuite::M912() {
         #endif
       #endif
     }
+
+    if (report) LOOP_XYZ(i) switch (i) {
+      case X_AXIS:
+        #if ENABLED(X_IS_TMC2130) || ENABLED(IS_TRAMS)
+          TMC_SAY_SGT(X);
+        #endif
+        #if ENABLED(X2_IS_TMC2130)
+          TMC_SAY_SGT(X2);
+        #endif
+        break;
+      case Y_AXIS:
+        #if ENABLED(Y_IS_TMC2130) || ENABLED(IS_TRAMS)
+          TMC_SAY_SGT(Y);
+        #endif
+        #if ENABLED(Y2_IS_TMC2130)
+          TMC_SAY_SGT(Y2);
+        #endif
+        break;
+      case Z_AXIS:
+        #if ENABLED(Z_IS_TMC2130) || ENABLED(IS_TRAMS)
+          TMC_SAY_SGT(Z);
+        #endif
+        #if ENABLED(Z2_IS_TMC2130)
+          TMC_SAY_SGT(Z2);
+        #endif
+        #if ENABLED(Z3_IS_TMC2130)
+          TMC_SAY_SGT(Z3);
+        #endif
+        break;
+    }
   }
 #endif // SENSORLESS_HOMING
 
