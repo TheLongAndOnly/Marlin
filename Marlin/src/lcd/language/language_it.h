@@ -81,6 +81,7 @@
 #define MSG_NEXT_CORNER                     _UxGT("Prossimo spigolo")
 #define MSG_EDITING_STOPPED                 _UxGT("Modif. Mesh Fermata")
 #define MSG_USER_MENU                       _UxGT("Comandi Utente")
+
 #define MSG_UBL_DOING_G29                   _UxGT("G29 in corso")
 #define MSG_UBL_UNHOMED                     _UxGT("Home XYZ prima")
 #define MSG_UBL_TOOLS                       _UxGT("Strumenti UBL")
@@ -232,6 +233,7 @@
 #define MSG_E3STEPS                         _UxGT("E3passi/mm")
 #define MSG_E4STEPS                         _UxGT("E4passi/mm")
 #define MSG_E5STEPS                         _UxGT("E5passi/mm")
+#define MSG_E6STEPS                         _UxGT("E6passi/mm")
 #define MSG_TEMPERATURE                     _UxGT("Temperatura")
 #define MSG_MOTION                          _UxGT("Movimento")
 #define MSG_FILAMENT                        _UxGT("Filamento")

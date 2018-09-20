@@ -91,9 +91,8 @@ void GcodeSuite::G34() {
     SERIAL_ECHOLNPGM("<<< G34");
     return;
   }
-  else {
+  else
     z_auto_align_iterations = temp_iterations;
-  }
 
   float z_auto_align_accuracy = Z_STEPPER_ALIGN_ACC;
   const float temp_accuracy = parser.floatval('T', z_auto_align_accuracy);

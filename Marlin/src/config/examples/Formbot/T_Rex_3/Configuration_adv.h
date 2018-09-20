@@ -242,6 +242,7 @@
 #define E2_AUTO_FAN_PIN -1
 #define E3_AUTO_FAN_PIN -1
 #define E4_AUTO_FAN_PIN -1
+#define E5_AUTO_FAN_PIN -1
 #define CHAMBER_AUTO_FAN_PIN -1
 #define EXTRUDER_AUTO_FAN_TEMPERATURE 50
 #define EXTRUDER_AUTO_FAN_SPEED   255  // == full speed
@@ -353,15 +354,18 @@
   #endif
 #endif
 
-// Enable this for dual x-carriage printers.
-// A dual x-carriage design has the advantage that the inactive extruder can be parked which
-// prevents hot-end ooze contaminating the print. It also reduces the weight of each x-carriage
-// allowing faster printing speeds. Connect your X2 stepper to the first unused E plug.
+/**
+ * Dual X Carriage
+ *
+ * This setup has two X carriages that can move independently, each with its own hotend.
+ * The carriages can be used to print an object with two colors or materials, or in
+ * "duplication mode" it can print two identical or X-mirrored objects simultaneously.
+ * The inactive carriage is parked automatically to prevent oozing.
+ * X1 is the left carriage, X2 the right. They park and home at opposite ends of the X axis.
+ * By default the X2 stepper is assigned to the first unused E plug on the board.
+ */
 #define DUAL_X_CARRIAGE
 #if ENABLED(DUAL_X_CARRIAGE)
-  // Configuration for second X-carriage
-  // Note: the first x-carriage is defined as the x-carriage which homes to the minimum endstop;
-  // the second x-carriage always homes to the maximum endstop.
   #define X1_MIN_POS X_MIN_POS        // set minimum to ensure first x-carriage doesn't hit the parked second X-carriage
   #define X1_MAX_POS (X_BED_SIZE)     // set maximum to ensure first x-carriage doesn't hit the parked second X-carriage
   #define X2_MIN_POS 0                // set minimum to ensure second x-carriage doesn't hit the parked first X-carriage
@@ -381,9 +385,7 @@
   //    Mode 2 (DXC_DUPLICATION_MODE) :           Duplication mode. The firmware will transparently make the second x-carriage and extruder copy all
   //                                              actions of the first x-carriage. This allows the printer to print 2 arbitrary items at
   //                                              once. (2nd extruder x offset and temp offset are set using: M605 S2 [Xnnn] [Rmmm])
-  //    Mode 3 (DXC_SYMMETRIC_DUPLICATION_MODE) : Symmetric Duplication mode. The firmware will perform similarly to DXC_DUPLICATION_MODE except in a mirror
-  //                                              image of the first x-carriage.  ie. If you are printing a right hand shoe on the 1st extruder, you will
-  //                                              get a left hand shoe on the 2nd extruder.
+  //    Mode 3 (DXC_SCALED_DUPLICATION_MODE) :    Not working yet, but support routines in place
 
   // This is the default power-up mode which can be later using M605.
   #define DEFAULT_DUAL_X_CARRIAGE_MODE DXC_AUTO_PARK_MODE
@@ -522,7 +524,7 @@
 #endif
 
 // Microstep setting (Only functional when stepper driver microstep pins are connected to MCU.
-#define MICROSTEP_MODES { 16, 16, 16, 16, 16 } // [1,2,4,8,16]
+#define MICROSTEP_MODES { 16, 16, 16, 16, 16, 16 } // [1,2,4,8,16]
 
 /**
  *  @section  stepper motor current
@@ -1161,6 +1163,10 @@
   #define E4_SENSE_RESISTOR   91
   #define E4_MICROSTEPS       16
 
+  #define E5_MAX_CURRENT    1000
+  #define E5_SENSE_RESISTOR   91
+  #define E5_MICROSTEPS       16
+
 #endif // TMC26X
 
 // @section tmc_smart
@@ -1225,6 +1231,9 @@
   #define E4_CURRENT         800
   #define E4_MICROSTEPS       16
 
+  #define E5_CURRENT         800
+  #define E5_MICROSTEPS       16
+
   /**
    * Use software SPI for TMC2130.
    * The default SW SPI pins are defined the respective pins files,
@@ -1280,6 +1289,7 @@
   #define E2_HYBRID_THRESHOLD     30
   #define E3_HYBRID_THRESHOLD     30
   #define E4_HYBRID_THRESHOLD     30
+  #define E5_HYBRID_THRESHOLD     30
 
   /**
    * Use stallGuard2 to sense an obstacle and trigger an endstop.
@@ -1396,6 +1406,10 @@
   #define E4_MICROSTEPS       16
   #define E4_OVERCURRENT    2000
   #define E4_STALLCURRENT   1500
+
+  #define E5_MICROSTEPS       16
+  #define E5_OVERCURRENT    2000
+  #define E5_STALLCURRENT   1500
 
 #endif // L6470
 
@@ -1722,6 +1736,7 @@
   #define MAX7219_NUMBER_UNITS 2   // Number of Max7219 units in chain.
   #define MAX7219_ROTATE       0   // Rotate the display clockwise (in multiples of +/- 90°)
                                    // connector at:  right=0   bottom=-90  top=90  left=180
+  //#define MAX7219_REVERSE_ORDER  // The individual LED matrix units may be in reversed order
 
   /**
    * Sample debug features

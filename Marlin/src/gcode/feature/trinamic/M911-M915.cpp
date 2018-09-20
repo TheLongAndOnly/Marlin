@@ -74,6 +74,9 @@ void GcodeSuite::M911() {
   #if M91x_USE_E(4)
     tmc_report_otpw(stepperE4, TMC_E4);
   #endif
+  #if M91x_USE_E(5)
+    tmc_report_otpw(stepperE5, TMC_E5);
+  #endif
 }
 
 /**
@@ -126,13 +129,10 @@ void GcodeSuite::M912() {
       #if M91x_USE(Z3)
         if (hasNone || zval == 3 || (hasZ && zval < 0)) tmc_clear_otpw(stepperZ3, TMC_Z3);
       #endif
-      #if M91x_USE(Z3)
-        if (hasNone || zval == 3 || (hasZ && zval == 10)) tmc_clear_otpw(stepperZ3, TMC_Z3);
-      #endif
     #endif
 
-    #if M91x_USE_E(0) || M91x_USE_E(1) || M91x_USE_E(2) || M91x_USE_E(3) || M91x_USE_E(4)
-      const int8_t eval = int8_t(parser.byteval(axis_codes[E_AXIS], 0xFF));
+    #if M91x_USE_E(0) || M91x_USE_E(1) || M91x_USE_E(2) || M91x_USE_E(3) || M91x_USE_E(4) || M91x_USE_E(5)
+      const uint8_t eval = int8_t(parser.byteval(axis_codes[E_AXIS], 0xFF));
       #if M91x_USE_E(0)
         if (hasNone || eval == 0 || (hasE && eval < 0)) tmc_clear_otpw(stepperE0, TMC_E0);
       #endif
@@ -147,6 +147,9 @@ void GcodeSuite::M912() {
       #endif
       #if M91x_USE_E(4)
         if (hasNone || eval == 4 || (hasE && eval < 0)) tmc_clear_otpw(stepperE4, TMC_E4);
+      #endif
+      #if M91x_USE_E(5)
+        if (hasNone || eval == 5 || (hasE && eval < 0)) tmc_clear_otpw(stepperE5, TMC_E5);
       #endif
     #endif
 }
@@ -211,6 +214,9 @@ void GcodeSuite::M912() {
             #if E_STEPPERS > 4 && AXIS_HAS_STEALTHCHOP(E4)
               case 4: TMC_SET_PWMTHRS_E(4); break;
             #endif
+            #if E_STEPPERS > 5 && AXIS_HAS_STEALTHCHOP(E5)
+              case 5: TMC_SET_PWMTHRS_E(5); break;
+            #endif
           }
         } break;
       }
@@ -252,6 +258,9 @@ void GcodeSuite::M912() {
       #endif
       #if E_STEPPERS > 4 && AXIS_HAS_STEALTHCHOP(E4)
         TMC_SAY_PWMTHRS_E(4);
+      #endif
+      #if E_STEPPERS > 5 && AXIS_HAS_STEALTHCHOP(E5)
+        TMC_SAY_PWMTHRS_E(5);
       #endif
     }
   }

@@ -213,6 +213,10 @@ bool report_tmc_status = false;
         static uint8_t e4_otpw_cnt = 0;
         monitor_tmc_driver(stepperE4, TMC_E4, e4_otpw_cnt);
       #endif
+      #if HAS_HW_COMMS(E5)
+        static uint8_t e5_otpw_cnt = 0;
+        monitor_tmc_driver(stepperE5, TMC_E5, e5_otpw_cnt);
+      #endif
 
       if (report_tmc_status) SERIAL_EOL();
     }
@@ -221,7 +225,7 @@ bool report_tmc_status = false;
 #endif // MONITOR_DRIVER_STATUS
 
 void _tmc_say_axis(const TMC_AxisEnum axis) {
-  static const char ext_X[] PROGMEM = "X", ext_Y[] PROGMEM = "Y", ext_Z[] PROGMEM = "Z",
+  static const char ext_X[] PROGMEM = "X", ext_Y[] PROGMEM = "Y", ext_Z[] PROGMEM = "Z"
     #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(X_DUAL_STEPPER_DRIVERS)
       , ext_X2[] PROGMEM = "X2"
     #endif
@@ -230,9 +234,9 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #endif
     #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2[] PROGMEM = "Z2"
-    #endif
-    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-      , ext_Z3[] PROGMEM = "Z3"
+      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        , ext_Z3[] PROGMEM = "Z3"
+      #endif
     #endif
     #if E_STEPPERS
       , ext_E0[] PROGMEM = "E0"
@@ -244,11 +248,15 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
             , ext_E3[] PROGMEM = "E3"
             #if E_STEPPERS > 4
               , ext_E4[] PROGMEM = "E4"
+              #if E_STEPPERS > 5
+                , ext_E5[] PROGMEM = "E5"
+              #endif
             #endif
           #endif
         #endif
       #endif
     #endif
+  ;
 
   static const char* const tmc_axes[] PROGMEM = {
     ext_X, ext_Y, ext_Z
@@ -260,9 +268,9 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
     #endif
     #if Z_MULTI_STEPPER_DRIVERS
       , ext_Z2
-    #endif
-    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-      , ext_Z3
+      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+        , ext_Z3
+      #endif
     #endif
     #if E_STEPPERS
       , ext_E0
@@ -274,6 +282,9 @@ void _tmc_say_axis(const TMC_AxisEnum axis) {
             , ext_E3
             #if E_STEPPERS > 4
               , ext_E4
+              #if E_STEPPERS > 5
+                , ext_E5
+              #endif
             #endif
           #endif
         #endif
@@ -532,6 +543,13 @@ void _tmc_say_sgt(const TMC_AxisEnum axis, const int8_t sgt) {
         #endif
       ]);
     #endif
+    #if AXIS_IS_TMC(E5)
+      tmc_status(stepperE5, TMC_E5, i, planner.axis_steps_per_mm[E_AXIS
+        #if ENABLED(DISTINCT_E_FACTORS)
+          + 5
+        #endif
+      ]);
+    #endif
 
     SERIAL_EOL();
   }
@@ -575,6 +593,9 @@ void _tmc_say_sgt(const TMC_AxisEnum axis, const int8_t sgt) {
     #endif
     #if AXIS_IS_TMC(E4)
       tmc_parse_drv_status(stepperE4, TMC_E4, i);
+    #endif
+    #if AXIS_IS_TMC(E5)
+      tmc_parse_drv_status(stepperE5, TMC_E5, i);
     #endif
 
     SERIAL_EOL();
@@ -692,6 +713,9 @@ void _tmc_say_sgt(const TMC_AxisEnum axis, const int8_t sgt) {
     #endif
     #if AXIS_DRIVER_TYPE(E4, TMC2130)
       SET_CS_PIN(E4);
+    #endif
+    #if AXIS_DRIVER_TYPE(E5, TMC2130)
+      SET_CS_PIN(E5);
     #endif
   }
 #endif // TMC2130

@@ -37,7 +37,7 @@
  */
 
 // Change EEPROM version if the structure changes
-#define EEPROM_VERSION "V57"
+#define EEPROM_VERSION "V58"
 #define EEPROM_OFFSET 100
 
 // Check the integrity of data offsets.
@@ -213,7 +213,7 @@ typedef struct SettingsDataStruct {
   //
   // PIDTEMP
   //
-  PIDC hotendPID[MAX_EXTRUDERS];                        // M301 En PIDC / M303 En U
+  PIDC hotendPID[HOTENDS];                              // M301 En PIDC / M303 En U
 
   int16_t lpq_len;                                      // M301 L
 
@@ -244,14 +244,14 @@ typedef struct SettingsDataStruct {
   // !NO_VOLUMETRIC
   //
   bool parser_volumetric_enabled;                       // M200 D  parser.volumetric_enabled
-  float planner_filament_size[MAX_EXTRUDERS];           // M200 T D  planner.filament_size[]
+  float planner_filament_size[EXTRUDERS];               // M200 T D  planner.filament_size[]
 
   //
   // HAS_TRINAMIC
   //
   #define TMC_AXES (MAX_EXTRUDERS + 7)
-  uint16_t tmc_stepper_current[TMC_AXES];               // M906 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4
-  uint32_t tmc_hybrid_threshold[TMC_AXES];              // M913 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4
+  uint16_t tmc_stepper_current[TMC_AXES];               // M906 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4 E5
+  uint32_t tmc_hybrid_threshold[TMC_AXES];              // M913 X Y Z X2 Y2 Z2 Z3 E0 E1 E2 E3 E4 E5
   int16_t tmc_sgt[XYZ];                                 // M914 X Y Z
 
   //
@@ -279,8 +279,8 @@ typedef struct SettingsDataStruct {
   //
   // ADVANCED_PAUSE_FEATURE
   //
-  float filament_change_unload_length[MAX_EXTRUDERS],   // M603 T U
-        filament_change_load_length[MAX_EXTRUDERS];     // M603 T L
+  float filament_change_unload_length[EXTRUDERS],       // M603 T U
+        filament_change_load_length[EXTRUDERS];         // M603 T L
 
 } SettingsData;
 
@@ -428,12 +428,20 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(planner.min_feedrate_mm_s);
     EEPROM_WRITE(planner.min_travel_feedrate_mm_s);
 
-    #if ENABLED(JUNCTION_DEVIATION)
+    #if HAS_CLASSIC_JERK
+      EEPROM_WRITE(planner.max_jerk);
+      #if ENABLED(JUNCTION_DEVIATION) && ENABLED(LIN_ADVANCE)
+        dummy = float(DEFAULT_EJERK);
+        EEPROM_WRITE(dummy);
+      #endif
+    #else
       const float planner_max_jerk[] = { float(DEFAULT_XJERK), float(DEFAULT_YJERK), float(DEFAULT_ZJERK), float(DEFAULT_EJERK) };
       EEPROM_WRITE(planner_max_jerk);
+    #endif
+
+    #if ENABLED(JUNCTION_DEVIATION)
       EEPROM_WRITE(planner.junction_deviation_mm);
     #else
-      EEPROM_WRITE(planner.max_jerk);
       dummy = 0.02f;
       EEPROM_WRITE(dummy);
     #endif
@@ -621,29 +629,23 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(lcd_preheat_bed_temp);
     EEPROM_WRITE(lcd_preheat_fan_speed);
 
-    for (uint8_t e = 0; e < MAX_EXTRUDERS; e++) {
-
+    for (uint8_t e = 0; e < HOTENDS; e++) {
       #if ENABLED(PIDTEMP)
-        if (e < HOTENDS) {
-          EEPROM_WRITE(PID_PARAM(Kp, e));
-          EEPROM_WRITE(PID_PARAM(Ki, e));
-          EEPROM_WRITE(PID_PARAM(Kd, e));
-          #if ENABLED(PID_EXTRUSION_SCALING)
-            EEPROM_WRITE(PID_PARAM(Kc, e));
-          #else
-            dummy = 1.0f; // 1.0 = default kc
-            EEPROM_WRITE(dummy);
-          #endif
-        }
-        else
-      #endif // !PIDTEMP
-        {
-          dummy = DUMMY_PID_VALUE; // When read, will not change the existing value
-          EEPROM_WRITE(dummy); // Kp
-          dummy = 0;
-          for (uint8_t q = 3; q--;) EEPROM_WRITE(dummy); // Ki, Kd, Kc
-        }
-
+        EEPROM_WRITE(PID_PARAM(Kp, e));
+        EEPROM_WRITE(PID_PARAM(Ki, e));
+        EEPROM_WRITE(PID_PARAM(Kd, e));
+        #if ENABLED(PID_EXTRUSION_SCALING)
+          EEPROM_WRITE(PID_PARAM(Kc, e));
+        #else
+          dummy = 1.0f; // 1.0 = default kc
+          EEPROM_WRITE(dummy);
+        #endif
+      #else
+        dummy = DUMMY_PID_VALUE; // When read, will not change the existing value
+        EEPROM_WRITE(dummy); // Kp
+        dummy = 0;
+        for (uint8_t q = 3; q--;) EEPROM_WRITE(dummy); // Ki, Kd, Kc
+      #endif
     } // Hotends Loop
 
     _FIELD_TEST(lpq_len);
@@ -697,17 +699,15 @@ void MarlinSettings::postprocess() {
       EEPROM_WRITE(parser.volumetric_enabled);
 
       // Save filament sizes
-      for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
-        if (q < COUNT(planner.filament_size)) dummy = planner.filament_size[q];
-        EEPROM_WRITE(dummy);
-      }
+      for (uint8_t q = 0; q < COUNT(planner.filament_size); q++)
+        EEPROM_WRITE(planner.filament_size[q]);
 
     #else
 
       const bool volumetric_enabled = false;
       dummy = DEFAULT_NOMINAL_FILAMENT_DIA;
       EEPROM_WRITE(volumetric_enabled);
-      for (uint8_t q = MAX_EXTRUDERS; q--;) EEPROM_WRITE(dummy);
+      for (uint8_t q = EXTRUDERS; q--;) EEPROM_WRITE(dummy);
 
     #endif
 
@@ -754,31 +754,48 @@ void MarlinSettings::postprocess() {
         #else
           0,
         #endif
-        #if AXIS_IS_TMC(E0)
-          stepperE0.getCurrent(),
-        #else
-          0,
-        #endif
-        #if AXIS_IS_TMC(E1)
-          stepperE1.getCurrent(),
-        #else
-          0,
-        #endif
-        #if AXIS_IS_TMC(E2)
-          stepperE2.getCurrent(),
-        #else
-          0,
-        #endif
-        #if AXIS_IS_TMC(E3)
-          stepperE3.getCurrent(),
-        #else
-          0,
-        #endif
-        #if AXIS_IS_TMC(E4)
-          stepperE4.getCurrent()
-        #else
-          0
-        #endif
+        #if MAX_EXTRUDERS
+          #if AXIS_IS_TMC(E0)
+            stepperE0.getCurrent(),
+          #else
+            0,
+          #endif
+          #if MAX_EXTRUDERS > 1
+            #if AXIS_IS_TMC(E1)
+              stepperE1.getCurrent(),
+            #else
+              0,
+            #endif
+            #if MAX_EXTRUDERS > 2
+              #if AXIS_IS_TMC(E2)
+                stepperE2.getCurrent(),
+              #else
+                0,
+              #endif
+              #if MAX_EXTRUDERS > 3
+                #if AXIS_IS_TMC(E3)
+                  stepperE3.getCurrent(),
+                #else
+                  0,
+                #endif
+                #if MAX_EXTRUDERS > 4
+                  #if AXIS_IS_TMC(E4)
+                    stepperE4.getCurrent()
+                  #else
+                    0
+                  #endif
+                  #if MAX_EXTRUDERS > 5
+                    #if AXIS_IS_TMC(E5)
+                      stepperE5.getCurrent()
+                    #else
+                      0
+                    #endif
+                  #endif // MAX_EXTRUDERS > 5
+                #endif // MAX_EXTRUDERS > 4
+              #endif // MAX_EXTRUDERS > 3
+            #endif // MAX_EXTRUDERS > 2
+          #endif // MAX_EXTRUDERS > 1
+        #endif // MAX_EXTRUDERS
       #else
         0
       #endif
@@ -828,35 +845,69 @@ void MarlinSettings::postprocess() {
         #else
           Z3_HYBRID_THRESHOLD,
         #endif
-        #if AXIS_HAS_STEALTHCHOP(E0)
-          TMC_GET_PWMTHRS(E, E0),
-        #else
-          E0_HYBRID_THRESHOLD,
-        #endif
-        #if AXIS_HAS_STEALTHCHOP(E1)
-          TMC_GET_PWMTHRS(E, E1),
-        #else
-          E1_HYBRID_THRESHOLD,
-        #endif
-        #if AXIS_HAS_STEALTHCHOP(E2)
-          TMC_GET_PWMTHRS(E, E2),
-        #else
-          E2_HYBRID_THRESHOLD,
-        #endif
-        #if AXIS_HAS_STEALTHCHOP(E3)
-          TMC_GET_PWMTHRS(E, E3),
-        #else
-          E3_HYBRID_THRESHOLD,
-        #endif
-        #if AXIS_HAS_STEALTHCHOP(E4)
-          TMC_GET_PWMTHRS(E, E4)
-        #else
-          E4_HYBRID_THRESHOLD
-        #endif
+        #if MAX_EXTRUDERS
+          #if AXIS_HAS_STEALTHCHOP(E0)
+            TMC_GET_PWMTHRS(E, E0),
+          #else
+            E0_HYBRID_THRESHOLD,
+          #endif
+          #if MAX_EXTRUDERS > 1
+            #if AXIS_HAS_STEALTHCHOP(E1)
+              TMC_GET_PWMTHRS(E, E1),
+            #else
+              E1_HYBRID_THRESHOLD,
+            #endif
+            #if MAX_EXTRUDERS > 2
+              #if AXIS_HAS_STEALTHCHOP(E2)
+                TMC_GET_PWMTHRS(E, E2),
+              #else
+                E2_HYBRID_THRESHOLD,
+              #endif
+              #if MAX_EXTRUDERS > 3
+                #if AXIS_HAS_STEALTHCHOP(E3)
+                  TMC_GET_PWMTHRS(E, E3),
+                #else
+                  E3_HYBRID_THRESHOLD,
+                #endif
+                #if MAX_EXTRUDERS > 4
+                  #if AXIS_HAS_STEALTHCHOP(E4)
+                    TMC_GET_PWMTHRS(E, E4)
+                  #else
+                    E4_HYBRID_THRESHOLD
+                  #endif
+                  #if MAX_EXTRUDERS > 5
+                    #if AXIS_HAS_STEALTHCHOP(E5)
+                      TMC_GET_PWMTHRS(E, E5)
+                    #else
+                      E5_HYBRID_THRESHOLD
+                    #endif
+                  #endif // MAX_EXTRUDERS > 5
+                #endif // MAX_EXTRUDERS > 4
+              #endif // MAX_EXTRUDERS > 3
+            #endif // MAX_EXTRUDERS > 2
+          #endif // MAX_EXTRUDERS > 1
+        #endif // MAX_EXTRUDERS
       #else
-        100, 100, 3,          // X, Y, Z
-        100, 100, 3, 3,       // X2, Y2, Z2, Z3
-        30, 30, 30, 30, 30    // E0, E1, E2, E3, E4
+        100, 100, 3,            // X, Y, Z
+        100, 100, 3, 3          // X2, Y2, Z2, Z3
+        #if MAX_EXTRUDERS
+          , 30                  // E0
+          #if MAX_EXTRUDERS > 1
+            , 30                // E1
+            #if MAX_EXTRUDERS > 2
+              , 30              // E2
+              #if MAX_EXTRUDERS > 3
+                , 30            // E3
+                #if MAX_EXTRUDERS > 4
+                  , 30          // E4
+                  #if MAX_EXTRUDERS > 5
+                    , 30        // E5
+                  #endif
+                #endif
+              #endif
+            #endif
+          #endif
+        #endif
       #endif
     };
     EEPROM_WRITE(tmc_hybrid_threshold);
@@ -943,17 +994,13 @@ void MarlinSettings::postprocess() {
     _FIELD_TEST(filament_change_unload_length);
 
     #if ENABLED(ADVANCED_PAUSE_FEATURE)
-      for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
-        if (q < COUNT(filament_change_unload_length)) dummy = filament_change_unload_length[q];
-        EEPROM_WRITE(dummy);
-      }
-      for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
-        if (q < COUNT(filament_change_load_length)) dummy = filament_change_load_length[q];
-        EEPROM_WRITE(dummy);
+      for (uint8_t q = 0; q < COUNT(filament_change_unload_length); q++) {
+        EEPROM_WRITE(filament_change_unload_length[q]);
+        EEPROM_WRITE(filament_change_load_length[q]);
       }
     #else
       dummy = 0;
-      for (uint8_t q = MAX_EXTRUDERS * 2; q--;) EEPROM_WRITE(dummy);
+      for (uint8_t q = EXTRUDERS * 2; q--;) EEPROM_WRITE(dummy);
     #endif
 
     //
@@ -1062,11 +1109,18 @@ void MarlinSettings::postprocess() {
       EEPROM_READ(planner.min_feedrate_mm_s);
       EEPROM_READ(planner.min_travel_feedrate_mm_s);
 
-      #if ENABLED(JUNCTION_DEVIATION)
+      #if HAS_CLASSIC_JERK
+        EEPROM_READ(planner.max_jerk);
+        #if ENABLED(JUNCTION_DEVIATION) && ENABLED(LIN_ADVANCE)
+          EEPROM_READ(dummy);
+        #endif
+      #else
         for (uint8_t q = 4; q--;) EEPROM_READ(dummy);
+      #endif
+
+      #if ENABLED(JUNCTION_DEVIATION)
         EEPROM_READ(planner.junction_deviation_mm);
       #else
-        EEPROM_READ(planner.max_jerk);
         EEPROM_READ(dummy);
       #endif
 
@@ -1256,9 +1310,9 @@ void MarlinSettings::postprocess() {
       //
 
       #if ENABLED(PIDTEMP)
-        for (uint8_t e = 0; e < MAX_EXTRUDERS; e++) {
+        for (uint8_t e = 0; e < HOTENDS; e++) {
           EEPROM_READ(dummy); // Kp
-          if (e < HOTENDS && dummy != DUMMY_PID_VALUE) {
+          if (dummy != DUMMY_PID_VALUE) {
             // do not need to scale PID values as the values in EEPROM are already scaled
             if (!validating) PID_PARAM(Kp, e) = dummy;
             EEPROM_READ(PID_PARAM(Ki, e));
@@ -1269,13 +1323,12 @@ void MarlinSettings::postprocess() {
               EEPROM_READ(dummy);
             #endif
           }
-          else {
+          else
             for (uint8_t q=3; q--;) EEPROM_READ(dummy); // Ki, Kd, Kc
-          }
         }
       #else // !PIDTEMP
         // 4 x 4 = 16 slots for PID parameters
-        for (uint8_t q = MAX_EXTRUDERS * 4; q--;) EEPROM_READ(dummy);  // Kp, Ki, Kd, Kc
+        for (uint8_t q = HOTENDS * 4; q--;) EEPROM_READ(dummy);  // Kp, Ki, Kd, Kc
       #endif // !PIDTEMP
 
       //
@@ -1344,16 +1397,15 @@ void MarlinSettings::postprocess() {
 
         EEPROM_READ(parser.volumetric_enabled);
 
-        for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
+        for (uint8_t q = 0; q < COUNT(planner.filament_size); q++) {
           EEPROM_READ(dummy);
-          if (!validating && q < COUNT(planner.filament_size))
-            planner.filament_size[q] = dummy;
+          if (!validating) planner.filament_size[q] = dummy;
         }
 
       #else
 
         EEPROM_READ(dummyb);
-        for (uint8_t q=MAX_EXTRUDERS; q--;) EEPROM_READ(dummy);
+        for (uint8_t q=EXTRUDERS; q--;) EEPROM_READ(dummy);
 
       #endif
 
@@ -1407,6 +1459,9 @@ void MarlinSettings::postprocess() {
           #if AXIS_IS_TMC(E4)
             SET_CURR(E4);
           #endif
+          #if AXIS_IS_TMC(E5)
+            SET_CURR(E5);
+          #endif
         }
       #else
         uint16_t val;
@@ -1453,6 +1508,9 @@ void MarlinSettings::postprocess() {
           #endif
           #if AXIS_HAS_STEALTHCHOP(E4)
             TMC_SET_PWMTHRS(E, E4);
+          #endif
+          #if AXIS_HAS_STEALTHCHOP(E5)
+            TMC_SET_PWMTHRS(E, E5);
           #endif
         }
       #else
@@ -1565,16 +1623,14 @@ void MarlinSettings::postprocess() {
       _FIELD_TEST(filament_change_unload_length);
 
       #if ENABLED(ADVANCED_PAUSE_FEATURE)
-        for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
+        for (uint8_t q = 0; q < COUNT(filament_change_unload_length); q++) {
           EEPROM_READ(dummy);
           if (!validating && q < COUNT(filament_change_unload_length)) filament_change_unload_length[q] = dummy;
-        }
-        for (uint8_t q = 0; q < MAX_EXTRUDERS; q++) {
           EEPROM_READ(dummy);
           if (!validating && q < COUNT(filament_change_load_length)) filament_change_load_length[q] = dummy;
         }
       #else
-        for (uint8_t q = MAX_EXTRUDERS * 2; q--;) EEPROM_READ(dummy);
+        for (uint8_t q = EXTRUDERS * 2; q--;) EEPROM_READ(dummy);
       #endif
 
       eeprom_error = size_error(eeprom_index - (EEPROM_OFFSET));
@@ -1808,11 +1864,15 @@ void MarlinSettings::reset(PORTARG_SOLO) {
 
   #if ENABLED(JUNCTION_DEVIATION)
     planner.junction_deviation_mm = float(JUNCTION_DEVIATION_MM);
-  #else
+  #endif
+
+  #if HAS_CLASSIC_JERK
     planner.max_jerk[X_AXIS] = DEFAULT_XJERK;
     planner.max_jerk[Y_AXIS] = DEFAULT_YJERK;
     planner.max_jerk[Z_AXIS] = DEFAULT_ZJERK;
-    planner.max_jerk[E_AXIS] = DEFAULT_EJERK;
+    #if DISABLED(JUNCTION_DEVIATION) || DISABLED(LIN_ADVANCE)
+      planner.max_jerk[E_AXIS] = DEFAULT_EJERK;
+    #endif
   #endif
 
   #if HAS_HOME_OFFSET
@@ -1826,6 +1886,9 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       "Offsets for the first hotend must be 0.0."
     );
     LOOP_XYZ(i) HOTEND_LOOP() hotend_offset[i][e] = tmp4[i][e];
+    #if ENABLED(DUAL_X_CARRIAGE)
+      hotend_offset[X_AXIS][1] = MAX(X2_HOME_POS, X2_MAX_POS);
+    #endif
   #endif
 
   //
@@ -2157,6 +2220,11 @@ void MarlinSettings::reset(PORTARG_SOLO) {
               CONFIG_ECHO_START;
               SERIAL_ECHOPAIR_P(port, "  M200 T4 D", LINEAR_UNIT(planner.filament_size[4]));
               SERIAL_EOL_P(port);
+              #if EXTRUDERS > 5
+                CONFIG_ECHO_START;
+                SERIAL_ECHOPAIR_P(port, "  M200 T5 D", LINEAR_UNIT(planner.filament_size[5]));
+                SERIAL_EOL_P(port);
+              #endif // EXTRUDERS > 5
             #endif // EXTRUDERS > 4
           #endif // EXTRUDERS > 3
         #endif // EXTRUDERS > 2
@@ -2243,11 +2311,12 @@ void MarlinSettings::reset(PORTARG_SOLO) {
       SERIAL_ECHOPGM_P(port, "Advanced: B<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate>");
       #if ENABLED(JUNCTION_DEVIATION)
         SERIAL_ECHOPGM_P(port, " J<junc_dev>");
-      #else
-        SERIAL_ECHOPGM_P(port, " X<max_x_jerk> Y<max_y_jerk> Z<max_z_jerk>");
       #endif
-      #if DISABLED(JUNCTION_DEVIATION) || ENABLED(LIN_ADVANCE)
-        SERIAL_ECHOPGM_P(port, " E<max_e_jerk>");
+      #if HAS_CLASSIC_JERK
+        SERIAL_ECHOPGM_P(port, " X<max_x_jerk> Y<max_y_jerk> Z<max_z_jerk>");
+        #if DISABLED(JUNCTION_DEVIATION) || DISABLED(LIN_ADVANCE)
+          SERIAL_ECHOPGM_P(port, " E<max_e_jerk>");
+        #endif
       #endif
       SERIAL_EOL_P(port);
     }
@@ -2258,11 +2327,14 @@ void MarlinSettings::reset(PORTARG_SOLO) {
 
     #if ENABLED(JUNCTION_DEVIATION)
       SERIAL_ECHOPAIR_P(port, " J", LINEAR_UNIT(planner.junction_deviation_mm));
-    #else
+    #endif
+    #if HAS_CLASSIC_JERK
       SERIAL_ECHOPAIR_P(port, " X", LINEAR_UNIT(planner.max_jerk[X_AXIS]));
       SERIAL_ECHOPAIR_P(port, " Y", LINEAR_UNIT(planner.max_jerk[Y_AXIS]));
       SERIAL_ECHOPAIR_P(port, " Z", LINEAR_UNIT(planner.max_jerk[Z_AXIS]));
-      SERIAL_ECHOPAIR_P(port, " E", LINEAR_UNIT(planner.max_jerk[E_AXIS]));
+      #if DISABLED(JUNCTION_DEVIATION) || DISABLED(LIN_ADVANCE)
+        SERIAL_ECHOPAIR_P(port, " E", LINEAR_UNIT(planner.max_jerk[E_AXIS]));
+      #endif
     #endif
 
     SERIAL_EOL_P(port);
@@ -2642,21 +2714,25 @@ void MarlinSettings::reset(PORTARG_SOLO) {
         say_M906(PORTVAR_SOLO);
         SERIAL_ECHOLNPAIR_P(port, " T0 E", stepperE0.getCurrent());
       #endif
-      #if E_STEPPERS > 1 && AXIS_IS_TMC(E1)
+      #if AXIS_IS_TMC(E1)
         say_M906(PORTVAR_SOLO);
         SERIAL_ECHOLNPAIR_P(port, " T1 E", stepperE1.getCurrent());
       #endif
-      #if E_STEPPERS > 2 && AXIS_IS_TMC(E2)
+      #if AXIS_IS_TMC(E2)
         say_M906(PORTVAR_SOLO);
         SERIAL_ECHOLNPAIR_P(port, " T2 E", stepperE2.getCurrent());
       #endif
-      #if E_STEPPERS > 3 && AXIS_IS_TMC(E3)
+      #if AXIS_IS_TMC(E3)
         say_M906(PORTVAR_SOLO);
         SERIAL_ECHOLNPAIR_P(port, " T3 E", stepperE3.getCurrent());
       #endif
-      #if E_STEPPERS > 4 && AXIS_IS_TMC(E4)
+      #if AXIS_IS_TMC(E4)
         say_M906(PORTVAR_SOLO);
         SERIAL_ECHOLNPAIR_P(port, " T4 E", stepperE4.getCurrent());
+      #endif
+      #if AXIS_IS_TMC(E5)
+        say_M906(PORTVAR_SOLO);
+        SERIAL_ECHOLNPAIR_P(port, " T5 E", stepperE5.getCurrent());
       #endif
       SERIAL_EOL_P(port);
 
@@ -2709,21 +2785,25 @@ void MarlinSettings::reset(PORTARG_SOLO) {
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOLNPAIR_P(port, " T0 E", TMC_GET_PWMTHRS(E, E0));
         #endif
-        #if E_STEPPERS > 1 && AXIS_IS_TMC(E1)
+        #if AXIS_IS_TMC(E1)
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOLNPAIR_P(port, " T1 E", TMC_GET_PWMTHRS(E, E1));
         #endif
-        #if E_STEPPERS > 2 && AXIS_IS_TMC(E2)
+        #if AXIS_IS_TMC(E2)
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOLNPAIR_P(port, " T2 E", TMC_GET_PWMTHRS(E, E2));
         #endif
-        #if E_STEPPERS > 3 && AXIS_IS_TMC(E3)
+        #if AXIS_IS_TMC(E3)
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOLNPAIR_P(port, " T3 E", TMC_GET_PWMTHRS(E, E3));
         #endif
-        #if E_STEPPERS > 4 && AXIS_IS_TMC(E4)
+        #if AXIS_IS_TMC(E4)
           say_M913(PORTVAR_SOLO);
           SERIAL_ECHOLNPAIR_P(port, " T4 E", TMC_GET_PWMTHRS(E, E4));
+        #endif
+        #if AXIS_IS_TMC(E5)
+          say_M913(PORTVAR_SOLO);
+          SERIAL_ECHOLNPAIR_P(port, " T5 E", TMC_GET_PWMTHRS(E, E5));
         #endif
         SERIAL_EOL_P(port);
       #endif // HYBRID_THRESHOLD
@@ -2848,6 +2928,12 @@ void MarlinSettings::reset(PORTARG_SOLO) {
               say_M603(PORTVAR_SOLO);
               SERIAL_ECHOPAIR_P(port, "T4 L", LINEAR_UNIT(filament_change_load_length[4]));
               SERIAL_ECHOLNPAIR_P(port, " U", LINEAR_UNIT(filament_change_unload_length[4]));
+              #if EXTRUDERS > 5
+                CONFIG_ECHO_START;
+                say_M603(PORTVAR_SOLO);
+                SERIAL_ECHOPAIR_P(port, "T5 L", LINEAR_UNIT(filament_change_load_length[5]));
+                SERIAL_ECHOLNPAIR_P(port, " U", LINEAR_UNIT(filament_change_unload_length[5]));
+              #endif // EXTRUDERS > 5
             #endif // EXTRUDERS > 4
           #endif // EXTRUDERS > 3
         #endif // EXTRUDERS > 2
