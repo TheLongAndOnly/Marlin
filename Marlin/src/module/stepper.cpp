@@ -2782,7 +2782,8 @@ void Stepper::report_positions() {
       #endif
       #if HAS_E5_MICROSTEPS && PIN_EXISTS(E5_MS3)
         case 8: WRITE(E5_MS3_PIN, ms3); break;
-      #endif    }
+      #endif    
+      }
   }
 
   void Stepper::microstep_mode(const uint8_t driver, const uint8_t stepping_mode) {
