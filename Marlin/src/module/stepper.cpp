@@ -307,11 +307,6 @@ int8_t Stepper::count_direction[NUM_AXIS] = { 0, 0, 0, 0 };
   #define Z_APPLY_DIR(v,Q) do{ Z_DIR_WRITE(v); Z2_DIR_WRITE(v); Z3_DIR_WRITE(v); }while(0)
   #if ENABLED(Z_TRIPLE_ENDSTOPS)
     #define Z_APPLY_STEP(v,Q) TRIPLE_ENDSTOP_APPLY_STEP(Z,v)
-<<<<<<< HEAD
-  #elif ENABLED(Z_STEPPER_AUTO_ALIGN)
-    #define Z_APPLY_STEP(v,Q) TRIPLE_SEPARATE_APPLY_STEP(Z,v)
-=======
->>>>>>> upstream/bugfix-2.0.x
   #else
     #define Z_APPLY_STEP(v,Q) do{ Z_STEP_WRITE(v); Z2_STEP_WRITE(v); Z3_STEP_WRITE(v); }while(0)
   #endif
@@ -2620,6 +2615,9 @@ void Stepper::report_positions() {
     #if HAS_E5_MICROSTEPS
       SET_OUTPUT(E5_MS1_PIN);
       SET_OUTPUT(E5_MS2_PIN);
+      #if PIN_EXISTS(E5_MS3)
+        SET_OUTPUT(E5_MS3_PIN);
+      #endif
     #endif
     static const uint8_t microstep_modes[] = MICROSTEP_MODES;
     for (uint16_t i = 0; i < COUNT(microstep_modes); i++)
@@ -2782,7 +2780,9 @@ void Stepper::report_positions() {
       #if HAS_E4_MICROSTEPS && PIN_EXISTS(E4_MS3)
         case 7: WRITE(E4_MS3_PIN, ms3); break;
       #endif
-    }
+      #if HAS_E5_MICROSTEPS && PIN_EXISTS(E5_MS3)
+        case 8: WRITE(E5_MS3_PIN, ms3); break;
+      #endif    }
   }
 
   void Stepper::microstep_mode(const uint8_t driver, const uint8_t stepping_mode) {
@@ -2886,6 +2886,9 @@ void Stepper::report_positions() {
       SERIAL_PROTOCOLPGM("E5: ");
       SERIAL_PROTOCOL(READ(E5_MS1_PIN));
       SERIAL_PROTOCOLLN(READ(E5_MS2_PIN));
+      #if PIN_EXISTS(E5_MS3)
+        SERIAL_PROTOCOLLN(READ(E5_MS3_PIN));
+      #endif      
     #endif
   }
 
