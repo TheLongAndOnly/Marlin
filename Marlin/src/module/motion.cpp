@@ -1398,6 +1398,7 @@ void homeaxis(const AxisEnum axis) {
           stepper.set_z_lock(false);
           stepper.set_z2_lock(false);
         }
+      }
     #endif
     #if ENABLED(Z_TRIPLE_ENDSTOPS)
       if (axis == Z_AXIS) {
