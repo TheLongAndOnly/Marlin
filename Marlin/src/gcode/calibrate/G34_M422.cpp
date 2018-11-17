@@ -42,13 +42,16 @@
   #include "../../feature/bedlevel/bedlevel.h"
 #endif
 
-#if HOMING_Z_WITH_PROBE || ENABLED(BLTOUCH)
-  #include "../../module/probe.h"
-#endif
+float z_auto_align_xpos[Z_STEPPER_COUNT] = Z_STEPPER_ALIGN_X,
+      z_auto_align_ypos[Z_STEPPER_COUNT] = Z_STEPPER_ALIGN_Y;
 
-// Data
-float z_auto_align_xpos[] = Z_STEPPER_ALIGN_XPOS,
-      z_auto_align_ypos[] = Z_STEPPER_ALIGN_YPOS;
+inline void set_all_z_lock(const bool lock) {
+  stepper.set_z_lock(lock);
+  stepper.set_z2_lock(lock);
+  #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+    stepper.set_z3_lock(lock);
+  #endif
+}
 
 /**
  * G34: Z-Stepper automatic alignment
@@ -63,231 +66,192 @@ void GcodeSuite::G34() {
     }
   #endif
 
-  #if ENABLED(DELTA)
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (DEBUGGING(LEVELING)) {
-        SERIAL_ECHOLNPGM("> Auto Z-Stepper alignment not supported for Delta.");
-        SERIAL_ECHOLNPGM("<<< G34");
-      }
-    #endif
-    return;
-  #endif
+  do { // break out on error
 
-  if (!TEST(axis_known_position, X_AXIS) || !TEST(axis_known_position, Y_AXIS)) {
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (DEBUGGING(LEVELING)) {
-        SERIAL_ECHOLNPGM("> required to have at least X & Y homed.");
-        SERIAL_ECHOLNPGM("<<< G34");
-      }
-    #endif
-    return;
-  }
-
-  uint8_t z_auto_align_iterations = Z_STEPPER_ALIGN_ITERATIONS;
-
-  const int8_t temp_iterations = parser.intval('I', z_auto_align_iterations);
-  if (0 == temp_iterations || temp_iterations > 30) {
-    SERIAL_ECHOLNPGM("?Z-Stepper (I)teration definition out of bounds (1, 30).");
-    SERIAL_ECHOLNPGM("<<< G34");
-    return;
-  }
-  else
-    z_auto_align_iterations = temp_iterations;
-
-  float z_auto_align_accuracy = Z_STEPPER_ALIGN_ACC;
-  const float temp_accuracy = parser.floatval('T', z_auto_align_accuracy);
-  if (0.01f > temp_accuracy || temp_accuracy > 1.0f) {
-    SERIAL_ECHOLNPGM("?Z-Stepper (T)arget accuracy definition is out of bounds (0.01, 1.0).");
-    SERIAL_ECHOLNPGM("<<< G34");
-    return;
-  }
-  else
-    z_auto_align_accuracy = temp_accuracy;
-
-  float z_auto_align_amplification = Z_STEPPER_ALIGN_AMP;
-  const float temp_amplification = parser.floatval('A', z_auto_align_amplification);
-  if (0.5f > temp_amplification || temp_amplification > 2.0f) {
-    SERIAL_ECHOLNPGM("?Z-Stepper (A)mplification definition is out of bounds (0.5, 2.0).");
-    SERIAL_ECHOLNPGM("<<< G34");
-    return;
-  }
-  else
-    z_auto_align_amplification = temp_amplification;
-
-  // Wait for planner moves to finish!
-  planner.synchronize();
-
-  // Disable the leveling matrix before homing
-  #if HAS_LEVELING
-    #if ENABLED(RESTORE_LEVELING_AFTER_G34)
-      const bool leveling_was_active = planner.leveling_active;
-    #endif
-    set_bed_leveling_enabled(false);
-  #endif
-
-  #if ENABLED(CNC_WORKSPACE_PLANES)
-    workspace_plane = PLANE_XY;
-  #endif
-
-  #if ENABLED(BLTOUCH)
-    bltouch_command(BLTOUCH_RESET);
-    set_bltouch_deployed(false);
-  #endif
-
-  // Always home with tool 0 active
-  #if HOTENDS > 1
-    const uint8_t old_tool_index = active_extruder;
-    tool_change(0, 0, true);
-  #endif
-
-  #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
-    extruder_duplication_enabled = false;
-  #endif
-
-  // Start calibration iterations
-  float z_measured[Z_STEPPER_COUNT] = { 0.0f };
-  // Remember correction from iteration to iteration to determine errors
-  float last_z_align_move[Z_STEPPER_COUNT] = { 10000.0f };
-  for (uint8_t iteration = 0; iteration < z_auto_align_iterations; ++iteration) {
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> probing all positions.");
-    #endif
-
-    // Reset minimum value
-    float z_measured_min = 100000.0f;
-    // For each iteration we move through all probe positions (one per Z-Stepper)
-    uint8_t zstepper;
-    for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
-      // Remember the measured z height per stepper
-      z_measured[zstepper] = probe_pt(z_auto_align_xpos[zstepper], z_auto_align_ypos[zstepper], PROBE_PT_RAISE, false);
-
-      if (isnan(z_measured[zstepper])) {
-        // We need to stop here
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (DEBUGGING(LEVELING)) {
-            SERIAL_ECHOLNPGM("> probing failed.");
-            SERIAL_ECHOLNPGM("<<< G34");
-          }
-        #endif
-        return;
-      }
-
+    if (!TEST(axis_known_position, X_AXIS) || !TEST(axis_known_position, Y_AXIS)) {
       #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (DEBUGGING(LEVELING)) {
-          SERIAL_ECHOPAIR("> measure Z position for ", zstepper+1);
-          SERIAL_ECHOLNPAIR(" is ", z_measured[zstepper]);
-        }
-      #endif
-
-      // Remember the maximum position to calculate the correction
-      z_measured_min = MIN(z_measured_min, z_measured[zstepper]);
-    }
-
-    // Remember the current z position to return to
-    float z_original_position = current_position[Z_AXIS];
-
-    // We can stop iterations early, if all corrections are smaller than our accuracy
-    bool breakEarly = true;
-    // Correct stepper offsets and re-iterate
-    for (zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
-      // Ensure
-      stepper.set_separate_multi_axis(true);
-
-      // We enable each stepper separately
-      stepper.set_z_lock(true);
-      stepper.set_z2_lock(true);
-      #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-        stepper.set_z3_lock(true);
-      #endif
-
-      // Calculate current stepper move
-      float z_align_move = z_measured[zstepper] - z_measured_min;
-
-      // Check, if we loose accuracy compared to last move
-      if (last_z_align_move[zstepper] + 1.0f < ABS(z_align_move)) {
-        // We need to stop here
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> detected decreasing accuracy.\n<<< G34");
-        #endif
-        return;
-      }
-      else
-        last_z_align_move[zstepper] = ABS(z_align_move);
-
-      // Stop early, if all measured points achieve accuracy targets
-      breakEarly &= (ABS(z_align_move) <= z_auto_align_accuracy);
-
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (DEBUGGING(LEVELING)) {
-          SERIAL_ECHOPAIR("> correcting Z for stepper ", zstepper+1);
-          SERIAL_ECHOLNPAIR(" by ", z_align_move);
-        }
-      #endif
-
-      switch(zstepper) {
-        case 0:
-          stepper.set_z_lock(false);
-          break;
-        case 1:
-          stepper.set_z2_lock(false);
-          break;
-        #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-          case 2:
-            stepper.set_z3_lock(false);
-            break;
-        #endif
-      }
-
-      // We will be losing home position and need to re-home
-      do_blocking_move_to_z(z_auto_align_amplification * z_align_move + current_position[Z_AXIS]);
-    }
-    stepper.set_z_lock(true);
-    stepper.set_z2_lock(true);
-    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-      stepper.set_z3_lock(true);
-    #endif
-
-    // Reset z position to previous position
-    do_blocking_move_to_z(z_original_position);
-
-    stepper.set_z_lock(false);
-    stepper.set_z2_lock(false);
-    #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
-      stepper.set_z3_lock(false);
-    #endif
-
-    stepper.set_separate_multi_axis(false);
-
-    if (breakEarly) {
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> achieved target accuracy.");
+        if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> XY homing required.");
       #endif
       break;
     }
-  }
 
-  // Restore the active tool after homing
-  #if HOTENDS > 1
-    #if ENABLED(PARKING_EXTRUDER)
-      #define NO_FETCH false // fetch the previous toolhead
-    #else
-      #define NO_FETCH true
+    const int8_t z_auto_align_iterations = parser.intval('I', Z_STEPPER_ALIGN_ITERATIONS);
+    if (!WITHIN(z_auto_align_iterations, 1, 30)) {
+      SERIAL_ECHOLNPGM("?(I)teration out of bounds (1-30).");
+      break;
+    }
+
+    const float z_auto_align_accuracy = parser.floatval('T', Z_STEPPER_ALIGN_ACC);
+    if (!WITHIN(z_auto_align_accuracy, 0.01f, 1.0f)) {
+      SERIAL_ECHOLNPGM("?(T)arget accuracy out of bounds (0.01-1.0).");
+      break;
+    }
+
+    const float z_auto_align_amplification = parser.floatval('A', Z_STEPPER_ALIGN_AMP);
+    if (!WITHIN(z_auto_align_amplification, 0.5f, 2.0f)) {
+      SERIAL_ECHOLNPGM("?(A)mplification out of bounds (0.5-2.0).");
+      break;
+    }
+
+    // Wait for planner moves to finish!
+    planner.synchronize();
+
+    // Disable the leveling matrix before auto-aligning
+    #if HAS_LEVELING
+      #if ENABLED(RESTORE_LEVELING_AFTER_G34)
+        const bool leveling_was_active = planner.leveling_active;
+      #endif
+      set_bed_leveling_enabled(false);
     #endif
-    tool_change(old_tool_index, 0, NO_FETCH);
-  #endif
 
-  #if HAS_LEVELING
-    #if ENABLED(RESTORE_LEVELING_AFTER_G34)
-      set_bed_leveling_enabled(leveling_was_active);
+    #if ENABLED(CNC_WORKSPACE_PLANES)
+      workspace_plane = PLANE_XY;
     #endif
-  #endif
 
-  // after this operation we have lost the z homing position
-  set_axis_is_not_at_home(Z_AXIS);
-  // rehome
-  gcode.G28(false);
+    #if ENABLED(BLTOUCH)
+      bltouch_command(BLTOUCH_RESET);
+      set_bltouch_deployed(false);
+    #endif
 
-  // we are finished
+    // Always home with tool 0 active
+    #if HOTENDS > 1
+      const uint8_t old_tool_index = active_extruder;
+      tool_change(0, 0, true);
+    #endif
+
+    #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
+      extruder_duplication_enabled = false;
+    #endif
+
+    // Remember corrections to determine errors on each iteration
+    float last_z_align_move[Z_STEPPER_COUNT] = ARRAY_N(Z_STEPPER_COUNT, 10000.0f, 10000.0f, 10000.0f),
+          z_measured[Z_STEPPER_COUNT] = { 0 };
+    bool err_break = false;
+    for (uint8_t iteration = 0; iteration < z_auto_align_iterations; ++iteration) {
+      #if ENABLED(DEBUG_LEVELING_FEATURE)
+        if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> probing all positions.");
+      #endif
+
+      // Reset minimum value
+      float z_measured_min = 100000.0f;
+      // For each iteration go through all probe positions (one per Z-Stepper)
+      for (uint8_t zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
+        // Probe a Z height for each stepper
+        z_measured[zstepper] = probe_pt(z_auto_align_xpos[zstepper], z_auto_align_ypos[zstepper], PROBE_PT_RAISE, false);
+
+        // Stop on error
+        if (isnan(z_measured[zstepper])) {
+          #if ENABLED(DEBUG_LEVELING_FEATURE)
+            if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> PROBING FAILED!");
+          #endif
+          err_break = true;
+          break;
+        }
+
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOPAIR("> Z", int(zstepper + 1));
+            SERIAL_ECHOLNPAIR(" measured position is ", z_measured[zstepper]);
+          }
+        #endif
+
+        // Remember the maximum position to calculate the correction
+        z_measured_min = MIN(z_measured_min, z_measured[zstepper]);
+      }
+
+      if (err_break) break;
+
+      // Remember the current z position to return to
+      float z_original_position = current_position[Z_AXIS];
+
+      // Iterations can stop early if all corrections are below required accuracy
+      bool success_break = true;
+      // Correct stepper offsets and re-iterate
+      for (uint8_t zstepper = 0; zstepper < Z_STEPPER_COUNT; ++zstepper) {
+        stepper.set_separate_multi_axis(true);
+        set_all_z_lock(true); // Steppers will be enabled separately
+
+        // Calculate current stepper move
+        const float z_align_move = z_measured[zstepper] - z_measured_min,
+                    z_align_abs = ABS(z_align_move);
+
+        // Check for lost accuracy compared to last move
+        if (last_z_align_move[zstepper] < z_align_abs - 1.0) {
+          // Stop here
+          #if ENABLED(DEBUG_LEVELING_FEATURE)
+            if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> detected decreasing accuracy.");
+          #endif
+          err_break = true;
+          break;
+        }
+        else
+          last_z_align_move[zstepper] = z_align_abs;
+
+        // Only stop early if all measured points achieve accuracy target
+        if (z_align_abs > z_auto_align_accuracy) success_break = false;
+
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOPAIR("> Z", int(zstepper + 1));
+            SERIAL_ECHOLNPAIR(" corrected by ", z_align_move);
+          }
+        #endif
+
+        switch (zstepper) {
+          case 0: stepper.set_z_lock(false); break;
+          case 1: stepper.set_z2_lock(false); break;
+          #if ENABLED(Z_TRIPLE_STEPPER_DRIVERS)
+            case 2: stepper.set_z3_lock(false); break;
+          #endif
+        }
+
+        // This will lose home position and require re-homing
+        do_blocking_move_to_z(z_auto_align_amplification * z_align_move + current_position[Z_AXIS]);
+      }
+
+      if (err_break) break;
+
+      // Move Z back to previous position
+      set_all_z_lock(true);
+      do_blocking_move_to_z(z_original_position);
+      set_all_z_lock(false);
+
+      stepper.set_separate_multi_axis(false);
+
+      if (success_break) {
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("> achieved target accuracy.");
+        #endif
+        break;
+      }
+    }
+
+    if (err_break) break;
+
+    // Restore the active tool after homing
+    #if HOTENDS > 1
+      tool_change(old_tool_index, 0,
+        #if ENABLED(PARKING_EXTRUDER)
+          false // Fetch the previous toolhead
+        #else
+          true
+        #endif
+      );
+    #endif
+
+    #if HAS_LEVELING
+      #if ENABLED(RESTORE_LEVELING_AFTER_G34)
+        set_bed_leveling_enabled(leveling_was_active);
+      #endif
+    #endif
+
+    // After this operation the z position needs correction
+    set_axis_is_not_at_home(Z_AXIS);
+
+    gcode.G28(false);
+
+  } while(0);
+
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< G34");
   #endif
@@ -297,31 +261,26 @@ void GcodeSuite::G34() {
  * M422: Z-Stepper automatic alignment parameter selection
  */
 void GcodeSuite::M422() {
-  if (!parser.seen('A')) {
-    SERIAL_PROTOCOLLNPGM("?Z-Stepper (A)xis definition required.");
+  const int8_t zstepper = parser.intval('S') - 1;
+  if (!WITHIN(zstepper, 0, Z_STEPPER_COUNT - 1)) {
+    SERIAL_PROTOCOLLNPGM("?(S) Z-Stepper index invalid.");
     return;
   }
 
-  const int8_t z_stepper = parser.intval('A', 0);
-  if (z_stepper <= 0 || z_stepper > Z_STEPPER_COUNT) {
-    SERIAL_PROTOCOLLNPGM("?Z-Stepper (A)xis definition invalid.");
-    return;
-  }
-
-  const float x_pos = parser.floatval('X', z_auto_align_xpos[z_stepper - 1]);
+  const float x_pos = parser.floatval('X', z_auto_align_xpos[zstepper]);
   if (!WITHIN(x_pos, X_MIN_POS, X_MAX_POS)) {
-    SERIAL_PROTOCOLLNPGM("?(X)-Position is implausible out of limits.");
+    SERIAL_PROTOCOLLNPGM("?(X) out of bounds.");
     return;
   }
 
-  const float y_pos = parser.floatval('Y', z_auto_align_ypos[z_stepper - 1]);
+  const float y_pos = parser.floatval('Y', z_auto_align_ypos[zstepper]);
   if (!WITHIN(y_pos, Y_MIN_POS, Y_MAX_POS)) {
-    SERIAL_PROTOCOLLNPGM("?(Y)-Position is implausible out of limits.");
+    SERIAL_PROTOCOLLNPGM("?(Y) out of bounds.");
     return;
   }
 
-  z_auto_align_xpos[z_stepper - 1] = x_pos;
-  z_auto_align_ypos[z_stepper - 1] = y_pos;
+  z_auto_align_xpos[zstepper] = x_pos;
+  z_auto_align_ypos[zstepper] = y_pos;
 }
 
 #endif // Z_STEPPER_AUTO_ALIGN

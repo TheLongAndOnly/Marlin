@@ -36,10 +36,6 @@ GcodeSuite gcode;
   #include "../module/printcounter.h"
 #endif
 
-#if ENABLED(DIRECT_MIXING_IN_G1)
-  #include "../feature/mixing.h"
-#endif
-
 #include "../Marlin.h" // for idle() and suspend_auto_report
 
 uint8_t GcodeSuite::target_extruder;
@@ -113,7 +109,7 @@ void GcodeSuite::get_destination_from_command() {
 
   // Get ABCDHI mixing factors
   #if ENABLED(MIXING_EXTRUDER) && ENABLED(DIRECT_MIXING_IN_G1)
-    gcode_get_mix();
+    M165();
   #endif
 }
 
@@ -170,14 +166,14 @@ void GcodeSuite::dwell(millis_t time) {
 // Placeholders for non-migrated codes
 //
 #if ENABLED(M100_FREE_MEMORY_WATCHER)
-  extern void M100_dump_routine(const char * const title, const char *start, const char *end);
+  extern void M100_dump_routine(PGM_P const title, const char *start, const char *end);
 #endif
 
 /**
  * Process the parsed command and dispatch it to its handler
  */
 void GcodeSuite::process_parsed_command(
-  #if ENABLED(USE_EXECUTE_COMMANDS_IMMEDIATE)
+  #if USE_EXECUTE_COMMANDS_IMMEDIATE
     const bool no_ok
   #endif
 ) {
@@ -188,7 +184,7 @@ void GcodeSuite::process_parsed_command(
     case 'G': switch (parser.codenum) {
 
       case 0: case 1: G0_G1(                                      // G0: Fast Move, G1: Linear Move
-                        #if IS_SCARA
+                        #if IS_SCARA || defined(G0_FEEDRATE)
                           parser.codenum == 0
                         #endif
                       );
@@ -265,6 +261,10 @@ void GcodeSuite::process_parsed_command(
           if (parser.subcode == 2 || parser.subcode == 3)
             G38(parser.subcode == 2);
           break;
+      #endif
+
+      #if ENABLED(GCODE_MOTION_MODES)
+        case 80: G80(); break;                                    // G80: Reset the current motion mode
       #endif
 
       case 90: relative_mode = false; break;                      // G90: Relative Mode
@@ -427,7 +427,7 @@ void GcodeSuite::process_parsed_command(
       case 120: M120(); break;                                    // M120: Enable endstops
       case 121: M121(); break;                                    // M121: Disable endstops
 
-      #if ENABLED(ULTIPANEL)
+      #if HAS_LCD_MENU
         case 145: M145(); break;                                  // M145: Set material heatup parameters
       #endif
 
@@ -441,9 +441,7 @@ void GcodeSuite::process_parsed_command(
 
       #if ENABLED(MIXING_EXTRUDER)
         case 163: M163(); break;                                  // M163: Set a component weight for mixing extruder
-        #if MIXING_VIRTUAL_TOOLS > 1
-          case 164: M164(); break;                                // M164: Save current mix as a virtual extruder
-        #endif
+        case 164: M164(); break;                                  // M164: Save current mix as a virtual extruder
         #if ENABLED(DIRECT_MIXING_IN_G1)
           case 165: M165(); break;                                // M165: Set multiple mix weights
         #endif
@@ -478,12 +476,20 @@ void GcodeSuite::process_parsed_command(
       #if ENABLED(FWRETRACT)
         case 207: M207(); break;                                  // M207: Set Retract Length, Feedrate, and Z lift
         case 208: M208(); break;                                  // M208: Set Recover (unretract) Additional Length and Feedrate
-        case 209:
-          if (MIN_AUTORETRACT <= MAX_AUTORETRACT) M209();         // M209: Turn Automatic Retract Detection on/off
-          break;
+        #if ENABLED(FWRETRACT_AUTORETRACT)
+          case 209:
+            if (MIN_AUTORETRACT <= MAX_AUTORETRACT) M209();       // M209: Turn Automatic Retract Detection on/off
+            break;
+        #endif
       #endif
 
-      case 211: M211(); break;                                    // M211: Enable, Disable, and/or Report software endstops
+      #if HAS_SOFTWARE_ENDSTOPS
+        case 211: M211(); break;                                  // M211: Enable, Disable, and/or Report software endstops
+      #endif
+
+      #if EXTRUDERS > 1
+        case 217: M217(); break;                                  // M217: Set filament swap parameters
+      #endif
 
       #if HOTENDS > 1
         case 218: M218(); break;                                  // M218: Set a tool offset
@@ -516,7 +522,7 @@ void GcodeSuite::process_parsed_command(
         case 304: M304(); break;                                  // M304: Set bed PID parameters
       #endif
 
-      #if defined(CHDK) || HAS_PHOTOGRAPH
+      #if PIN_EXISTS(CHDK) || HAS_PHOTOGRAPH
         case 240: M240(); break;                                  // M240: Trigger a camera by emulating a Canon RC-1 : http://www.doc-diy.net/photo/rc-1_hacked/
       #endif
 
@@ -543,8 +549,8 @@ void GcodeSuite::process_parsed_command(
         case 364: if (M364()) return; break;                      // M364: SCARA Psi pos3 (90 deg to Theta)
       #endif
 
-      #if ENABLED(EXT_SOLENOID)
-        case 380: M380(); break;                                  // M380: Activate solenoid on active extruder
+      #if ENABLED(EXT_SOLENOID) || ENABLED(MANUAL_SOLENOID_CONTROL)
+        case 380: M380(); break;                                  // M380: Activate solenoid on active (or specified) extruder
         case 381: M381(); break;                                  // M381: Disable all solenoids
       #endif
 
@@ -560,6 +566,10 @@ void GcodeSuite::process_parsed_command(
         case 405: M405(); break;                                  // M405: Turn on filament sensor for control
         case 406: M406(); break;                                  // M406: Turn off filament sensor for control
         case 407: M407(); break;                                  // M407: Display measured filament diameter
+      #endif
+
+      #if ENABLED(FILAMENT_RUNOUT_SENSOR)
+        case 412: M412(); break;                                  // M412: Enable/Disable filament runout detection
       #endif
 
       #if HAS_LEVELING
@@ -582,6 +592,10 @@ void GcodeSuite::process_parsed_command(
       #endif
       #if ENABLED(EEPROM_SETTINGS)
         case 504: M504(); break;                                  // M504: Validate EEPROM contents
+      #endif
+
+      #if ENABLED(SDSUPPORT)
+        case 524: M524(); break;                                   // M524: Abort the current SD print job
       #endif
 
       #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
@@ -614,6 +628,12 @@ void GcodeSuite::process_parsed_command(
         case 7219: M7219(); break;                                // M7219: Set LEDs, columns, and rows
       #endif
 
+      #if ENABLED(GCODE_MACROS)
+        case 810: case 811: case 812: case 813: case 814:
+        case 815: case 816: case 817: case 818: case 819:
+        M810_819(); break;                                        // M810-M819: Define/execute G-code macro
+      #endif
+
       #if ENABLED(LIN_ADVANCE)
         case 900: M900(); break;                                  // M900: Set advance K factor.
       #endif
@@ -634,13 +654,15 @@ void GcodeSuite::process_parsed_command(
           case 122: M122(); break;
         #endif
         case 906: M906(); break;                                  // M906: Set motor current in milliamps using axis codes X, Y, Z, E
-        case 911: M911(); break;                                  // M911: Report TMC2130 prewarn triggered flags
-        case 912: M912(); break;                                  // M912: Clear TMC2130 prewarn triggered flags
+        #if ENABLED(MONITOR_DRIVER_STATUS)
+          case 911: M911(); break;                                // M911: Report TMC2130 prewarn triggered flags
+          case 912: M912(); break;                                // M912: Clear TMC2130 prewarn triggered flags
+        #endif
         #if ENABLED(HYBRID_THRESHOLD)
           case 913: M913(); break;                                // M913: Set HYBRID_THRESHOLD speed.
         #endif
-        #if ENABLED(SENSORLESS_HOMING)
-          case 914: M914(); break;                                // M914: Set SENSORLESS_HOMING sensitivity.
+        #if USE_SENSORLESS
+          case 914: M914(); break;                                // M914: Set StallGuard sensitivity.
         #endif
         #if ENABLED(TMC_Z_CALIBRATION)
           case 915: M915(); break;                                // M915: TMC Z axis calibration.
@@ -688,7 +710,7 @@ void GcodeSuite::process_parsed_command(
 
   KEEPALIVE_STATE(NOT_BUSY);
 
-  #if ENABLED(USE_EXECUTE_COMMANDS_IMMEDIATE)
+  #if USE_EXECUTE_COMMANDS_IMMEDIATE
     if (!no_ok)
   #endif
       ok_to_send();
@@ -706,7 +728,7 @@ void GcodeSuite::process_next_command() {
     SERIAL_ECHOLN(current_command);
     #if ENABLED(M100_FREE_MEMORY_WATCHER)
       SERIAL_ECHOPAIR("slot:", cmd_queue_index_r);
-      M100_dump_routine("   Command Queue:", (const char*)command_queue, (const char*)(command_queue + sizeof(command_queue)));
+      M100_dump_routine(PSTR("   Command Queue:"), (const char*)command_queue, (const char*)(command_queue + sizeof(command_queue)));
     #endif
   }
 
@@ -715,35 +737,43 @@ void GcodeSuite::process_next_command() {
   process_parsed_command();
 }
 
-#if ENABLED(USE_EXECUTE_COMMANDS_IMMEDIATE)
+#if USE_EXECUTE_COMMANDS_IMMEDIATE
+
   /**
    * Run a series of commands, bypassing the command queue to allow
    * G-code "macros" to be called from within other G-code handlers.
    */
-  void GcodeSuite::process_subcommands_now_P(const char *pgcode) {
-    // Save the parser state
-    char * const saved_cmd = parser.command_ptr;
 
-    // Process individual commands in string
-    while (pgm_read_byte_near(pgcode)) {
-      // Break up string at '\n' delimiters
-      const char *delim = strchr_P(pgcode, '\n');
-      size_t len = delim ? delim - pgcode : strlen_P(pgcode);
-      char cmd[len + 1];
-      strncpy_P(cmd, pgcode, len);
-      cmd[len] = '\0';
-      pgcode += len;
-      if (delim) pgcode++;
-
-      // Parse the next command in the string
-      parser.parse(cmd);
-      process_parsed_command(true);
+  void GcodeSuite::process_subcommands_now_P(PGM_P pgcode) {
+    char * const saved_cmd = parser.command_ptr;        // Save the parser state
+    for (;;) {
+      PGM_P const delim = strchr_P(pgcode, '\n');       // Get address of next newline
+      const size_t len = delim ? delim - pgcode : strlen_P(pgcode); // Get the command length
+      char cmd[len + 1];                                // Allocate a stack buffer
+      strncpy_P(cmd, pgcode, len);                      // Copy the command to the stack
+      cmd[len] = '\0';                                  // End with a nul
+      parser.parse(cmd);                                // Parse the command
+      process_parsed_command(true);                     // Process it
+      if (!delim) break;                                // Last command?
+      pgcode = delim + 1;                               // Get the next command
     }
-
-    // Restore the parser state
-    parser.parse(saved_cmd);
+    parser.parse(saved_cmd);                            // Restore the parser state
   }
-#endif
+
+  void GcodeSuite::process_subcommands_now(char * gcode) {
+    char * const saved_cmd = parser.command_ptr;        // Save the parser state
+    for (;;) {
+      char * const delim = strchr(gcode, '\n');         // Get address of next newline
+      if (delim) *delim = '\0';                         // Replace with nul
+      parser.parse(gcode);                              // Parse the current command
+      process_parsed_command(true);                     // Process it
+      if (!delim) break;                                // Last command?
+      gcode = delim + 1;                                // Get the next command
+    }
+    parser.parse(saved_cmd);                            // Restore the parser state
+  }
+
+#endif // USE_EXECUTE_COMMANDS_IMMEDIATE
 
 #if ENABLED(HOST_KEEPALIVE_FEATURE)
 
