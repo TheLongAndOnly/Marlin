@@ -417,8 +417,8 @@
 #define Z_STEPPER_AUTO_ALIGN
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
   // Define probe X and Y positions for Z1, Z2 [, Z3]
-  #define Z_STEPPER_ALIGN_XPOS {150, 75,  225}
-  #define Z_STEPPER_ALIGN_YPOS { 75, 225, 225}
+  #define Z_STEPPER_ALIGN_X {150, 75,  225}
+  #define Z_STEPPER_ALIGN_Y { 75, 225, 225}
   // Set number of iterations to align
   #define Z_STEPPER_ALIGN_ITERATIONS 6
   // Enable to restore leveling setup after operation
@@ -426,7 +426,7 @@
   // Use the amplification factor to de-/increase correction step.
   // In case the stepper (spindle) position is further out than the test point
   // Use a value > 1. NOTE: This may cause instability
-  #define Z_STEPPER_ALIGN_AMP 1.2s
+  #define Z_STEPPER_ALIGN_AMP 1.2
   // Stop criterion. If the accuracy is better than this stop iterating early
   #define Z_STEPPER_ALIGN_ACC 0.02
 #endif
