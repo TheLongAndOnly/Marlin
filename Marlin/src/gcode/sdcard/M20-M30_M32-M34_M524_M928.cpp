@@ -28,6 +28,7 @@
 #include "../../sd/cardreader.h"
 #include "../../module/printcounter.h"
 #include "../../module/stepper.h"
+#include "../../lcd/ultralcd.h"
 
 #if ENABLED(POWER_LOSS_RECOVERY)
   #include "../../feature/power_loss_recovery.h"
@@ -49,13 +50,13 @@ void GcodeSuite::M20() {
     const int16_t port = command_queue_port[cmd_queue_index_r];
   #endif
 
-  SERIAL_PROTOCOLLNPGM_P(port, MSG_BEGIN_FILE_LIST);
+  SERIAL_ECHOLNPGM_P(port, MSG_BEGIN_FILE_LIST);
   card.ls(
     #if NUM_SERIAL > 1
       port
     #endif
   );
-  SERIAL_PROTOCOLLNPGM_P(port, MSG_END_FILE_LIST);
+  SERIAL_ECHOLNPGM_P(port, MSG_END_FILE_LIST);
 }
 
 /**
@@ -90,27 +91,24 @@ void GcodeSuite::M24() {
 
   #if ENABLED(POWER_LOSS_RECOVERY)
     if (parser.seenval('S')) card.setIndex(parser.value_long());
+    if (parser.seenval('T')) print_job_timer.resume(parser.value_long());
   #endif
 
   card.startFileprint();
-
-  #if ENABLED(POWER_LOSS_RECOVERY)
-    if (parser.seenval('T'))
-      print_job_timer.resume(parser.value_long());
-    else
-  #endif
-      print_job_timer.start();
+  print_job_timer.start();
+  ui.reset_status();
 }
 
 /**
  * M25: Pause SD Print
  */
 void GcodeSuite::M25() {
-  card.pauseSDPrint();
-  print_job_timer.pause();
-
   #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M125")); // Must be enqueued with pauseSDPrint set to be last in the buffer
+    M125();
+  #else
+    card.pauseSDPrint();
+    print_job_timer.pause();
+    ui.reset_status();
   #endif
 }
 

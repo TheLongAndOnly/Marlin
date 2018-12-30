@@ -73,9 +73,11 @@
 #define BOARD_AZTEEG_X3_PRO     68    // Azteeg X3 Pro
 #define BOARD_ULTIMAIN_2        72    // Ultimainboard 2.x (Uses TEMP_SENSOR 20)
 #define BOARD_RUMBA             80    // Rumba
-#define BOARD_FORMBOT_TREX2PLUS 95    // Formbot version 1
-#define BOARD_FORMBOT_TREX3     96    // Formbot T-Rex 3 revision
-#define BOARD_FORMBOT_RAPTOR    97    // Formbot version 1
+#define BOARD_RUMBA_RAISE3D     333   // Raise3D N series Rumba derivative
+#define BOARD_FORMBOT_TREX2PLUS 95    // Formbot T-Rex 2 Plus
+#define BOARD_FORMBOT_TREX3     96    // Formbot T-Rex 3
+#define BOARD_FORMBOT_RAPTOR    97    // Formbot Raptor
+#define BOARD_FORMBOT_RAPTOR2   98    // Formbot Raptor 2
 #define BOARD_BQ_ZUM_MEGA_3D    503   // bq ZUM Mega 3D
 #define BOARD_MAKEBOARD_MINI    431   // MakeBoard Mini v2.1.2 is a control board sold by MicroMake
 #define BOARD_TRIGORILLA_13     343   // TriGorilla Anycubic version 1.3 based on RAMPS EFB
@@ -83,6 +85,7 @@
 #define BOARD_RAMPS_ENDER_4     243   // Creality: Ender-4, CR-8
 #define BOARD_RAMPS_CREALITY    244   // Creality: CR10S, CR20, CR-X
 #define BOARD_FYSETC_F6_13      541   // Fysetc F6
+#define BOARD_DUPLICATOR_I3_PLUS 31   // Wanhao Duplicator i3 Plus
 
 //
 // Other ATmega1280, ATmega2560
@@ -97,6 +100,7 @@
 #define BOARD_MEGATRONICS_2     701   // Megatronics v2.0
 #define BOARD_MEGATRONICS_3     703   // Megatronics v3.0
 #define BOARD_MEGATRONICS_31    704   // Megatronics v3.1
+#define BOARD_MEGATRONICS_32    705   // Megatronics v3.2
 #define BOARD_RAMBO             301   // Rambo
 #define BOARD_MINIRAMBO         302   // Mini-Rambo
 #define BOARD_MINIRAMBO_10A     303   // Mini-Rambo 1.0a
@@ -181,6 +185,8 @@
 #define BOARD_COHESION3D_MINI     1756  // Cohesion3D Mini
 #define BOARD_SMOOTHIEBOARD       1757  // Smoothieboard
 #define BOARD_AZTEEG_X5_MINI_WIFI 1758  // Azteeg X5 Mini (Power outputs: Hotend0, Bed, Fan)
+#define BOARD_BIQU_SKR_V1_1       1759  // BIQU SKR_V1.1 (Power outputs: Hotend0,Hotend1, Fan, Bed)
+#define BOARD_BIQU_B300_V1_0      1760  // BIQU B300_V1.0 (Power outputs: Hotend0, Fan, Bed, SPI Driver)
 
 //
 // SAM3X8E ARM Cortex M3
@@ -222,6 +228,7 @@
 #define BOARD_STM3R_MINI       1803   // STM32 Libmaple based stm32f1 controller
 #define BOARD_GTM32_PRO_VB     1805   // STM32f103VET6 controller
 #define BOARD_MORPHEUS         1806   // STM32F103C8/STM32F103CB Libmaple based stm32f1 controller
+#define BOARD_MKS_ROBIN        1808   // MKS Robin / STM32F103ZET6
 
 //
 // STM32 ARM Cortex-M4F

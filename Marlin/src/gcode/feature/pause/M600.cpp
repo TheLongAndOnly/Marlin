@@ -88,7 +88,7 @@ void GcodeSuite::M600() {
       #if ENABLED(DUAL_X_CARRIAGE)
         && dual_x_carriage_mode != DXC_DUPLICATION_MODE && dual_x_carriage_mode != DXC_SCALED_DUPLICATION_MODE
       #endif
-    ) tool_change(target_extruder, 0, true);
+    ) tool_change(target_extruder, 0, false);
   #endif
 
   // Initial retract before move to filament change position
@@ -129,8 +129,6 @@ void GcodeSuite::M600() {
     #endif
   );
 
-  const bool job_running = print_job_timer.isRunning();
-
   if (pause_print(retract, park_point, unload_length, true DXC_PASS)) {
     wait_for_confirmation(true, beep_count DXC_PASS);
     resume_print(slow_load_length, fast_load_length, ADVANCED_PAUSE_PURGE_LENGTH, beep_count DXC_PASS);
@@ -139,11 +137,8 @@ void GcodeSuite::M600() {
   #if EXTRUDERS > 1
     // Restore toolhead if it was changed
     if (active_extruder_before_filament_change != active_extruder)
-      tool_change(active_extruder_before_filament_change, 0, true);
+      tool_change(active_extruder_before_filament_change, 0, false);
   #endif
-
-  // Resume the print job timer if it was running
-  if (job_running) print_job_timer.start();
 }
 
 #endif // ADVANCED_PAUSE_FEATURE

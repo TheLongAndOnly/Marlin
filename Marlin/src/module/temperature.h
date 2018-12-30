@@ -112,7 +112,7 @@ enum ADCSensorState : char {
     Prepare_FILWIDTH,
     Measure_FILWIDTH,
   #endif
-  #if ENABLED(ADC_KEYPAD)
+  #if HAS_ADC_BUTTONS
     Prepare_ADC_KEY,
     Measure_ADC_KEY,
   #endif
@@ -291,7 +291,7 @@ class Temperature {
     #endif
 
   public:
-    #if ENABLED(ADC_KEYPAD)
+    #if HAS_ADC_BUTTONS
       static uint32_t current_ADCKey_raw;
       static uint8_t ADCKey_count;
     #endif
@@ -407,7 +407,7 @@ class Temperature {
       #if ENABLED(AUTO_POWER_CONTROL)
         powerManager.power_on();
       #endif
-      target_temperature[HOTEND_INDEX] = celsius;
+      target_temperature[HOTEND_INDEX] = MIN(celsius, maxttemp[HOTEND_INDEX] - 15);
       #if WATCH_HOTENDS
         start_watching_heater(HOTEND_INDEX);
       #endif
@@ -451,7 +451,7 @@ class Temperature {
         #endif
         target_temperature_bed =
           #ifdef BED_MAXTEMP
-            MIN(celsius, BED_MAXTEMP)
+            MIN(celsius, BED_MAXTEMP - 15)
           #else
             celsius
           #endif
@@ -465,7 +465,7 @@ class Temperature {
         static void start_watching_bed();
       #endif
 
-      static bool wait_for_bed(const bool no_wait_for_cooling
+      static bool wait_for_bed(const bool no_wait_for_cooling=true
         #if G26_CLICK_CAN_CANCEL
           , const bool click_to_cancel=false
         #endif
