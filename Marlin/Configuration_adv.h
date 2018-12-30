@@ -420,13 +420,13 @@
   #define Z_STEPPER_ALIGN_X {150, 75,  225}
   #define Z_STEPPER_ALIGN_Y { 75, 225, 225}
   // Set number of iterations to align
-  #define Z_STEPPER_ALIGN_ITERATIONS 6
+  #define Z_STEPPER_ALIGN_ITERATIONS 8
   // Enable to restore leveling setup after operation
   #define RESTORE_LEVELING_AFTER_G34
   // Use the amplification factor to de-/increase correction step.
   // In case the stepper (spindle) position is further out than the test point
   // Use a value > 1. NOTE: This may cause instability
-  #define Z_STEPPER_ALIGN_AMP 1.2
+  #define Z_STEPPER_ALIGN_AMP 1.5
   // Stop criterion. If the accuracy is better than this stop iterating early
   #define Z_STEPPER_ALIGN_ACC 0.02
 #endif

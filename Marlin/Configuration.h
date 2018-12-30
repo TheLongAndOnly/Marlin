@@ -398,10 +398,9 @@
                                   // is more than PID_FUNCTIONAL_RANGE then the PID will be shut off and the heater will be set to min/max.
 
   // If you are using a pre-configured hotend then you can use one of the value sets by uncommenting it
-
-  #define DEFAULT_Kp 14.93
-  #define DEFAULT_Ki 1.42
-  #define DEFAULT_Kd 39.11
+  #define DEFAULT_Kp 27.97
+  #define DEFAULT_Ki 2.80
+  #define DEFAULT_Kd 69.92
 
   // Ultimaker
   //#define DEFAULT_Kp 22.2
@@ -818,7 +817,7 @@
  */
 #define X_PROBE_OFFSET_FROM_EXTRUDER -35   // X offset: -left  +right  [of the nozzle]
 #define Y_PROBE_OFFSET_FROM_EXTRUDER 50    // Y offset: -front +behind [the nozzle]
-#define Z_PROBE_OFFSET_FROM_EXTRUDER -1.15 // Z offset: -below +above  [the nozzle]
+#define Z_PROBE_OFFSET_FROM_EXTRUDER -0.3 // Z offset: -below +above  [the nozzle]
 
 // Certain types of probes need to stay away from edges
 #define MIN_PROBE_EDGE 10
